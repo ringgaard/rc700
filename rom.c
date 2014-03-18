@@ -10,7 +10,8 @@
 #include <string.h>
 #include "sim.h"
 #include "simglb.h"
-#include "bootrom.h"
+
+#include "bootrom"
 
 #define L(x)
 
