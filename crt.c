@@ -53,6 +53,9 @@ struct crt_controller {
   int param_index;
   int x, y;
   int rows, cols;
+  int underline;
+  int cursor;
+  int refresh_cursor;
   BYTE *screen;
   BYTE *prev;
 };
@@ -60,17 +63,22 @@ struct crt_controller {
 struct crt_controller crt;
 
 void crt_command(int cmd) {
-  int x, y;
   int intr = 0;
+
   switch (cmd) {
     case CRT_CMD_RESET:
       crt.status = 0;
       crt.cols = (crt.param[1] & 0x7F) + 1;
       crt.rows = (crt.param[2] & 0x3F) + 1;
-      L(printf("crt: reset, cols=%d, rows=%d\n", crt.cols, crt.rows));
+      crt.underline = ((crt.param[3] >> 4) & 0x0F) + 1;
+      crt.cursor = (crt.param[4] >> 4) & 0x03;
+      L(printf("crt: reset, cols=%d, rows=%d, cursor=%d, underline=%d %02x %02x %02x %02x\n", 
+               crt.cols, crt.rows, crt.cursor, crt.underline,
+               crt.param[1], crt.param[2], crt.param[3], crt.param[4]));
       crt.screen = NULL;
       crt.prev = realloc(crt.prev, crt.cols * crt.rows);
       memset(crt.prev, ' ', crt.cols * crt.rows);
+      rcterm_set_cursor(crt.cursor, crt.underline);
       break;
     case CRT_CMD_START_DISPLAY: 
       L(printf("crt: start display\n"));
@@ -86,12 +94,10 @@ void crt_command(int cmd) {
       L(printf("crt: read light pen\n"));
       break;
     case CRT_CMD_LOAD_CURSOR: 
-      // Use cursor movement to simulate simple console.
-      x = crt.param[1];
-      y = crt.param[2];
-      crt.x = x;
-      crt.y = y;
-      rcterm_gotoxy(x, y);
+      crt.x = crt.param[1];
+      crt.y = crt.param[2];
+      L(printf("crt: load cursor x=%d, y=%d\n", crt.x, crt.y));
+      crt.refresh_cursor = rcterm_gotoxy(crt.x, crt.y);
       break;
     case CRT_CMD_INTR_ENABLE: 
       L(printf("crt: intr enable\n"));
@@ -127,8 +133,10 @@ void crt_param_out(BYTE data, int dev) {
 }
 
 BYTE crt_status_in(int dev) {
-  L(printf("crt: read status %02X\n", crt.status));
-  return crt.status;
+  LL(printf("crt: read status %02X\n", crt.status));
+  BYTE status = crt.status;
+  crt.status &= ~(CRT_STAT_FO | CRT_STAT_DU | CRT_STAT_IC | CRT_STAT_LP | CRT_STAT_IR);
+  return status;
 }
 
 void crt_command_out(BYTE data, int dev) {
@@ -154,21 +162,22 @@ int crt_poll(void) {
 
   // Fetch screen buffer from DMA channel.
   adr = dma_fetch(2, &cnt);
-  if (!cnt) return 0;
-  cnt++;
   crt.screen = ram + adr;
 
   LL(printf("crt: refresh %04X, %d bytes\n", adr, cnt));
 
   // Update screen if screen buffer has changed.
-  if (crt.prev && cnt == crt.cols * crt.rows &&
+  if (crt.refresh_cursor ||
+      crt.prev && cnt == crt.cols * crt.rows &&
       memcmp(crt.screen, crt.prev, cnt) != 0) {
     rcterm_screen(crt.screen, crt.prev, crt.cols, crt.rows);
     memcpy(crt.prev, crt.screen, cnt);
+    crt.refresh_cursor = 0;
   }
 
   // Trigger interrupt.
   if (!crt.status & CRT_STAT_IE) return 0;
+  crt.status |= CRT_STAT_IR;
   ctc_trigger(CTC_CHANNEL_CRT);
   return 1;
 }

@@ -237,7 +237,7 @@ WORD dma_fetch(int channel, WORD *size) {
     dma.curr_cnt[channel] = 0;
     dma.status |= (1 << channel);
   }
-  *size = cnt;
+  *size = cnt + 1;
   return adr;
 }
 

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <unistd.h>
 #include "sim.h"
 #include "simglb.h"
 
@@ -20,13 +21,17 @@ extern int poll_pio(void);
 char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
+int refresh_ticks = 100000;
+int wait_delay = 100000;
+
 void cpu_poll() {
   static int tick = 0;
-  if (++tick < 100000) return;
+  if (++tick < refresh_ticks) return;
   tick = 0;
 
   if (!pio_poll()) {
     crt_poll();
+    //usleep(wait_delay);
   }
 }
 

@@ -151,6 +151,7 @@ extern void rcterm_init(void);
 extern void rcterm_exit(void);
 extern void rcterm_clear_screen(int cols, int rows);
 extern void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows);
-extern void rcterm_gotoxy(int col, int row);
+extern void rcterm_set_cursor(int type, int underline);
+extern int rcterm_gotoxy(int col, int row);
 extern int rcterm_keypressed(void);
 
