@@ -52,7 +52,7 @@ struct crt_controller {
   BYTE param[MAX_PARAMS];
   int param_index;
   int x, y;
-  int rows, cols;
+  int rows, cols, size;
   int underline;
   int cursor;
   int refresh_cursor;
@@ -75,9 +75,11 @@ void crt_command(int cmd) {
       L(printf("crt: reset, cols=%d, rows=%d, cursor=%d, underline=%d %02x %02x %02x %02x\n", 
                crt.cols, crt.rows, crt.cursor, crt.underline,
                crt.param[1], crt.param[2], crt.param[3], crt.param[4]));
-      crt.screen = NULL;
-      crt.prev = realloc(crt.prev, crt.cols * crt.rows);
-      memset(crt.prev, ' ', crt.cols * crt.rows);
+      crt.size = crt.cols * crt.rows;
+      crt.screen = realloc(crt.screen, crt.size);;
+      memset(crt.screen, ' ', crt.size);
+      crt.prev = realloc(crt.prev, crt.size);
+      memset(crt.prev, ' ', crt.size);
       rcterm_set_cursor(crt.cursor, crt.underline);
       break;
     case CRT_CMD_START_DISPLAY: 
@@ -96,7 +98,7 @@ void crt_command(int cmd) {
     case CRT_CMD_LOAD_CURSOR: 
       crt.x = crt.param[1];
       crt.y = crt.param[2];
-      L(printf("crt: load cursor x=%d, y=%d\n", crt.x, crt.y));
+      LL(printf("crt: load cursor x=%d, y=%d\n", crt.x, crt.y));
       crt.refresh_cursor = rcterm_gotoxy(crt.x, crt.y);
       break;
     case CRT_CMD_INTR_ENABLE: 
@@ -153,25 +155,43 @@ void crt_command_out(BYTE data, int dev) {
 }
 
 int crt_poll(void) {
-  WORD cnt;
-  WORD adr;
+  WORD cnt, cnt2, cnt3;
+  WORD adr, adr2, adr3;
 
   // Only update screen if interrupts and video are enabled.
   if (!IFF) return 0;
   if (!(crt.status & CRT_STAT_VE)) return 0;
+  if (!crt.screen) return 0;
 
-  // Fetch screen buffer from DMA channel.
-  adr = dma_fetch(2, &cnt);
-  crt.screen = ram + adr;
+  // Fetch screen buffer from DMA channel. DMA 2 and 3 are cascaded
+  // in RC700.
+  cnt2 = crt.size;
+  adr2 = dma_fetch(2, &cnt2);
+  memcpy(crt.screen, ram + adr2, cnt2);
+  adr = adr2;
+  cnt = cnt2;
+  if (cnt < crt.size) {
+    cnt3 = crt.size - cnt;
+    adr3 = dma_fetch(3, &cnt3);
+    memcpy(crt.screen + cnt2, ram + adr3, cnt3);
+    cnt += cnt3;
+  } else {
+    adr3 = 0;
+    cnt3 = 0;
+  }
 
-  LL(printf("crt: refresh %04X, %d bytes\n", adr, cnt));
+  LL(printf("crt: refresh %04X+%04X, %d+%d=%d bytes\n", adr2, adr3 cnt2, cnt3, cnt));
+  if (cnt < crt.size) {
+    D(printf("crt: crt dma underrun %04X+%04X, %d+%d=%d bytes, %d expected\n", 
+             adr2, adr3, cnt2, cnt3, cnt, crt.size));
+    crt.status |= CRT_STAT_DU;
+    return 0;
+  }
 
   // Update screen if screen buffer has changed.
-  if (crt.refresh_cursor ||
-      crt.prev && cnt == crt.cols * crt.rows &&
-      memcmp(crt.screen, crt.prev, cnt) != 0) {
+  if (crt.refresh_cursor || memcmp(crt.screen, crt.prev, crt.size) != 0) {
     rcterm_screen(crt.screen, crt.prev, crt.cols, crt.rows);
-    memcpy(crt.prev, crt.screen, cnt);
+    memcpy(crt.prev, crt.screen, crt.size);
     crt.refresh_cursor = 0;
   }
 
@@ -189,7 +209,7 @@ void dump_screen(void) {
   if (!crt.screen) {
     printf("<no display buffer>\n");
   } else {
-    printf("%dx%d screen buffer at %04X:\n", crt.cols, crt.rows, crt.screen - ram);
+    printf("%dx%d screen buffer:\n", crt.cols, crt.rows);
     p = crt.screen;
     for (y = 0; y < crt.rows; ++y) {
       start = p;

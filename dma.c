@@ -164,14 +164,12 @@ void dma_adr_out(BYTE data, int channel) {
   dma.flipflop = !dma.flipflop;
 }
 
-BYTE dma_cnt_in(int channel)
-{
+BYTE dma_cnt_in(int channel) {
   L(printf("dma%d: read count %02X (%s)\n", channel, dma.curr_cnt[channel], dma.flipflop ? "hi" : "lo"));
   return dma.flipflop ? dma.curr_cnt[channel] >> 8 : dma.curr_cnt[channel] & 0xff;
 }
 
-void dma_cnt_out(BYTE data, int channel)
-{
+void dma_cnt_out(BYTE data, int channel) {
   L(printf("dma%d: write count %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
   if (dma.flipflop) {
     dma.base_cnt[channel] = (dma.base_cnt[channel] & 0x00ff) | (data << 8);
@@ -229,14 +227,23 @@ void dma_fill(int channel, BYTE value, int  bytes) {
 WORD dma_fetch(int channel, WORD *size) {
   WORD adr = dma.curr_adr[channel];
   WORD cnt = dma.curr_cnt[channel];
+  if (cnt == 0) {
+    dma.status |= (1 << channel);
+    *size = 0;
+    return adr;
+  }
+
   if (dma.mode[channel] & DMA_MODE_DECREMENT) {
     L(printf("dma%d: cannot fetch in decrement mode\n"));
   }
-  if (cnt > 0) {
-    dma.curr_adr[channel] += cnt;
-    dma.curr_cnt[channel] = 0;
+  if (*size - 1 < cnt) cnt = *size - 1;
+
+  dma.curr_adr[channel] += cnt;
+  dma.curr_cnt[channel] -= cnt;
+  if (dma.curr_cnt[channel] == 0) {
     dma.status |= (1 << channel);
   }
+
   *size = cnt + 1;
   return adr;
 }

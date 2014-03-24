@@ -145,6 +145,13 @@ void fdc_update_status(int drive, int head, int intr) {
   } else {
     fdc.st3 &= ~FDC_ST3_T0;
   }
+  if (fdc.disk[drive]) {
+    fdc.st0 &= ~FDC_ST0_NR;
+    fdc.st3 |= FDC_ST3_RY;
+  } else {
+    fdc.st0 |= FDC_ST0_NR;
+    fdc.st3 &= ~FDC_ST3_RY;
+  }
 }
 
 void fdc_update_transfer_result(int drive, int cylinder, int head, int sector, int count) {
@@ -192,8 +199,9 @@ void fdc_read_sectors(int drive) {
 
   // Get mounted disk image for drive.
   struct disk *disk = fdc.disk[drive];
-  if (disk == NULL) {
-    W(printf("drive %d is not mounted\n", drive));
+  if (!disk) {
+    W(printf("fdc: drive %d is not mounted\n", drive));
+    fdc_update_transfer_result(drive, C, H, R, N);
     return;
   }
 
@@ -217,7 +225,10 @@ void fdc_read_sectors(int drive) {
       // Transfer sector using DMA.
       int size = track->sector_size;
       if (size > sector_size) size = sector_size;
+
       L(printf("fdc: read sector C=%d,H=%d,S=%d: read %d bytes to %04X, %d kbps, %s\n", C, H, R - 1, size, dma_address(1), track->transfer_rate, track->mfm ? "MFM" : "FM"));
+      if (sector->bad) W(printf("fdc: read bad sector C=%d,H=%d,S=%d on drive %d\n", C, H, R - 1, drive));
+
       if (sector->data) {
         dma_transfer(1, sector->data, size);
       } else {
@@ -240,6 +251,88 @@ void fdc_read_sectors(int drive) {
   dma_transfer_done(1);
   fdc_update_transfer_result(drive, C, H, R, N);
   L(printf("read done\n"));
+}
+
+void fdc_write_sectors(int drive) {
+  WORD adr;
+  WORD cnt;
+  int sector_size;
+
+  // Get command parameters.
+  int MT = fdc.command[0] & 0x80;
+  int MF = fdc.command[0] & 0x40;
+  int SK = fdc.command[0] & 0x20;
+  int C = fdc.command[2];
+  int H = fdc.command[3];
+  int R = fdc.command[4];
+  int N = fdc.command[5];
+  int EOT = fdc.command[6];
+  int GPL = fdc.command[7];
+  int DTL = fdc.command[8];
+
+  // Get mounted disk image for drive.
+  struct disk *disk = fdc.disk[drive];
+  if (!disk) {
+    W(printf("fdc: drive %d is not mounted\n", drive));
+    fdc_update_transfer_result(drive, C, H, R, N);
+    return;
+  }
+
+  L(printf("write: MT=%d MF=%d SK=%d C=%d H=%d R=%d N=%d EOT=%d GPL=%d DTL=%d\n", MT, MF, SK, C, H, R, N, EOT, GPL, DTL));
+
+  // Compute sector size.
+  if (N > 0) {
+    sector_size = 128 << N;
+  } else {
+    sector_size = DTL;
+    if (MF) sector_size *= 2;
+  }
+
+  // Write sectors.
+  while (!dma_completed(1)) {
+    struct track *track = &disk->tracks[C][H];
+    char buffer[512];
+    
+    if (R <= track->num_sectors) {
+      struct sector *sector = &track->sectors[R - 1];
+
+      int size = track->sector_size;
+      if (size > sector_size) size = sector_size;
+      
+      // Fetch data from DMA channel.
+      cnt = size;
+      adr = dma_fetch(1, &cnt);
+
+      L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes to %04X, %d kbps, %s\n", C, H, R - 1, cnt, adr, track->transfer_rate, track->mfm ? "MFM" : "FM"));
+      
+      if (cnt != track->sector_size) {
+        W(printf("fdc: partial sector C=%d,H=%d,S=%d on drive %d, %d bytes, %d expected\n", C, H, R - 1, drive, cnt, track->sector_size));
+      }
+
+      // Allocate space for dirty sector.
+      if (!sector->original || !sector->data) {
+        sector->original = sector->data;
+        sector->data = malloc(track->sector_size);
+      }
+      
+      // Copy data to dirty sector buffer.
+      memcpy(sector->data, ram + adr, cnt);
+    } else {
+      // Sector not found.
+      fdc.st1 |= FDC_ST1_ND;
+      break;
+    }
+
+    // Move to next sector.
+    R += 1;
+    if (R > EOT) {
+      R = 1;
+      if (!MT) break;
+      H = 1 - H;
+    }
+  }
+  fdc_update_transfer_result(drive, C, H, R, N);
+  L(printf("write done\n"));
 }
 
 void fdc_execute_command(void) {
@@ -273,7 +366,8 @@ void fdc_execute_command(void) {
       break;
 
     case FDC_CMD_WRITE_DATA:
-      W(printf("fdc: write data, not implemented\n"));
+      fdc_write_sectors(drive);
+      intr = 1;
       break;
 
     case FDC_CMD_READ_DATA:
@@ -368,7 +462,7 @@ BYTE fdc_data_in(int dev) {
   if (fdc.result_index == fdc.result_size) {
     fdc.status &= ~(FDC_STAT_DIO | FDC_STAT_CB);
   }
-  L(printf("fdc: result read %02X\n", result));
+  LL(printf("fdc: result read %02X\n", result));
   return result;
 }
 

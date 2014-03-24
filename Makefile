@@ -12,11 +12,11 @@ SRCFILES=sim1.c sim2.c sim3.c sim4.c sim5.c sim6.c sim7.c disas.c iosim.c simglb
 
 HDRFILES=sim.h simglb.h disk.h bootrom
 
-rc700: $(SRCFILES) $(HDRFILES) rcterm-curses.c
-	$(CC) -o $@ $(SRCFILES) -O3 rcterm-curses.c -lncursesw
-
-rc700-sdl: $(SRCFILES) $(HDRFILES) rcterm-sdl.c
+rc700: $(SRCFILES) $(HDRFILES) rcterm-sdl.c
 	$(CC) -o $@ $(SRCFILES) -O3 rcterm-sdl.c -lSDL
+
+rc700-curses: $(SRCFILES) $(HDRFILES) rcterm-curses.c
+	$(CC) -o $@ $(SRCFILES) -O3 rcterm-curses.c -lncursesw
 
 rom2struct: rom2struct.c
 	$(CC) -o $@ rom2struct.c
