@@ -157,6 +157,7 @@ void crt_command_out(BYTE data, int dev) {
 int crt_poll(void) {
   WORD cnt, cnt2, cnt3;
   WORD adr, adr2, adr3;
+  int update = 0;
 
   // Only update screen if interrupts and video are enabled.
   if (!IFF) return 0;
@@ -193,13 +194,16 @@ int crt_poll(void) {
     rcterm_screen(crt.screen, crt.prev, crt.cols, crt.rows);
     memcpy(crt.prev, crt.screen, crt.size);
     crt.refresh_cursor = 0;
+    update = 1;
   }
 
   // Trigger interrupt.
-  if (!crt.status & CRT_STAT_IE) return 0;
-  crt.status |= CRT_STAT_IR;
-  ctc_trigger(CTC_CHANNEL_CRT);
-  return 1;
+  if (crt.status & CRT_STAT_IE) {
+    crt.status |= CRT_STAT_IR;
+    ctc_trigger(CTC_CHANNEL_CRT);
+  }
+
+  return update;
 }
 
 void dump_screen(void) {

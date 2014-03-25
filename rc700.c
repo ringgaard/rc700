@@ -22,16 +22,25 @@ char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
 int refresh_ticks = 100000;
-int wait_delay = 100000;
+int active_delay  =   5000;
+int idle_delay    = 200000;
 
 void cpu_poll() {
   static int tick = 0;
-  if (++tick < refresh_ticks) return;
-  tick = 0;
+  static int active = 1000;
 
-  if (!pio_poll()) {
-    crt_poll();
-    //usleep(wait_delay);
+  if (--tick > 0) return;
+  tick = refresh_ticks;
+
+  if (!pio_poll() && !crt_poll()) {
+    if (!active) {
+      usleep(idle_delay);
+    } else {
+      --active;
+      usleep(active_delay);
+    }
+  } else {
+    active = 1000;
   }
 }
 
