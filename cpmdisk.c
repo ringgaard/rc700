@@ -5,10 +5,10 @@
 #include "sim.h"
 #include "disk.h"
 
-#define DEBUG_CPMDISK
+//#define DEBUG_CPMDISK
 //#define COMAL
 
-struct disk disk;
+struct disk *disk;
 
 int read_sector(int c, int h, int s, BYTE *buffer) {
   struct track *track;
@@ -19,7 +19,7 @@ int read_sector(int c, int h, int s, BYTE *buffer) {
     return -1;
   }
   
-  track = &disk.tracks[c][h];
+  track = &disk->tracks[c][h];
   if (s < 0 || s >= track->num_sectors) {
     fprintf(stderr, "Illegal disk sector (c,h,s)=(%d,%d,%d)\n", c, h, s);
     return -1;
@@ -163,7 +163,8 @@ int main(int argc, char *argv[]) {
   if (argc >= 3) dest = argv[2];
 
   // Read image into memory.
-  load_disk_image(imdfile, &disk);
+  disk = load_disk_image(imdfile);
+  if (!disk) return 1;
   
   // Read directory.
   p = directory;
@@ -223,6 +224,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  free_disk_image(disk);
   return 0;
 }
 

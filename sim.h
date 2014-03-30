@@ -123,6 +123,7 @@ extern void register_refresh(void (*handler)());
 extern void ctc_trigger(int channel);
 
 extern int fdc_mount_disk(int drive, char *imagefile);
+extern void fdc_flush_disk(int drive, char *imagefile);
 
 extern WORD dma_address(int channel);
 extern WORD dma_count(int channel);

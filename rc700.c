@@ -22,8 +22,8 @@ char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
 int refresh_ticks = 100000;
-int active_delay  =   5000;
-int idle_delay    = 200000;
+int active_delay  =   0; //5000;
+int idle_delay    = 0; //200000;
 
 void cpu_poll() {
   static int tick = 0;
@@ -147,6 +147,10 @@ int main(int argc, char *argv[]) {
 
   sa.sa_handler = SIG_DFL;
   sigaction(SIGINT, &sa, NULL);
+  
+  for (i = 0; i < num_floppies; ++i) {
+    if (floppy[i]) fdc_flush_disk(i, floppy[i]);
+  }
 
   return 0;
 }

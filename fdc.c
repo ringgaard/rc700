@@ -291,8 +291,7 @@ void fdc_write_sectors(int drive) {
   // Write sectors.
   while (!dma_completed(1)) {
     struct track *track = &disk->tracks[C][H];
-    char buffer[512];
-    
+
     if (R <= track->num_sectors) {
       struct sector *sector = &track->sectors[R - 1];
 
@@ -309,14 +308,8 @@ void fdc_write_sectors(int drive) {
         W(printf("fdc: partial sector C=%d,H=%d,S=%d on drive %d, %d bytes, %d expected\n", C, H, R - 1, drive, cnt, track->sector_size));
       }
 
-      // Allocate space for dirty sector.
-      if (!sector->original || !sector->data) {
-        sector->original = sector->data;
-        sector->data = malloc(track->sector_size);
-      }
-      
-      // Copy data to dirty sector buffer.
-      memcpy(sector->data, ram + adr, cnt);
+      // Write data to disk.
+      write_disk_sector(disk, C, H, R - 1, ram + adr, cnt);      
     } else {
       // Sector not found.
       fdc.st1 |= FDC_ST1_ND;
@@ -499,13 +492,21 @@ void fdc_floppy_motor(BYTE data, int dev) {
 }
 
 int fdc_mount_disk(int drive, char *imagefile) {
-  struct disk *disk = malloc(sizeof(struct disk));
-  L(printf("mount %s on drive %d\n", imagefile, drive));
-  if (load_disk_image(imagefile, disk)) {
+  struct disk *disk;
+
+  L(printf("fdc: mount %s on drive %d\n", imagefile, drive));
+  disk = load_disk_image(imagefile);
+  if (disk) {
     fdc.disk[drive] = disk;
   } else {
-    free(disk);
     W(printf("unable to load disk image in %s\n", imagefile));
+  }
+}
+
+void fdc_flush_disk(int drive, char *imagefile) {
+  if (fdc.disk[drive] && fdc.disk[drive]->dirty) {
+    W(printf("fdc: save drive %d to %s\n", drive, imagefile));
+    save_disk_image(fdc.disk[drive], imagefile);
   }
 }
 

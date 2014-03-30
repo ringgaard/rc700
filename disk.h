@@ -12,10 +12,10 @@
 
 struct sector {
   BYTE *data;
-  BYTE *original;
   BYTE fill;
   int deleted;
   int bad;
+  int dirty;
 };
 
 struct track {
@@ -29,8 +29,15 @@ struct track {
 struct disk {
   BYTE *data;
   char *label;
+  int num_tracks;
+  int dirty;
   struct track tracks[MAX_CYLINDERS][MAX_SIDES];
 };
 
-int load_disk_image(char *imagefile, struct disk *disk);
+struct disk *load_disk_image(char *imagefile);
+int save_disk_image(struct disk *disk, char *imagefile);
+void free_disk_image(struct disk *disk);
+
+int write_disk_sector(struct disk *disk, int c, int h, int s, char *data, int size);
+int fill_disk_sector(struct disk *disk, int c, int h, int s, BYTE fill);
 
