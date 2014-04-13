@@ -111,6 +111,7 @@ extern void init_ctc(void);
 extern void init_dma(void);
 extern void init_crt(void);
 extern void init_fdc(void);
+extern void init_ftp(void);
 
 #define CTC_CHANNEL_SIOA  0
 #define CTC_CHANNEL_SIOB  1

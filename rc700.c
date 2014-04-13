@@ -57,6 +57,7 @@ static void init_rc700(void) {
   init_dma();
   init_crt();
   init_fdc();
+  init_ftp();
   
   for (i = 0; i < num_floppies; ++i) {
     fdc_mount_disk(i, floppy[i]);

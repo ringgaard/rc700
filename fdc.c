@@ -324,6 +324,7 @@ void fdc_write_sectors(int drive) {
       H = 1 - H;
     }
   }
+  dma_transfer_done(1);
   fdc_update_transfer_result(drive, C, H, R, N);
   L(printf("write done\n"));
 }

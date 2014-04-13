@@ -225,8 +225,11 @@ void dma_fill(int channel, BYTE value, int  bytes) {
 }
 
 WORD dma_fetch(int channel, WORD *size) {
+  WORD len = *size;
   WORD adr = dma.curr_adr[channel];
   WORD cnt = dma.curr_cnt[channel];
+  WORD left = cnt + 1;
+
   if (cnt == 0) {
     dma.status |= (1 << channel);
     *size = 0;
@@ -236,19 +239,21 @@ WORD dma_fetch(int channel, WORD *size) {
   if (dma.mode[channel] & DMA_MODE_DECREMENT) {
     L(printf("dma%d: cannot fetch in decrement mode\n"));
   }
-  if (*size - 1 < cnt) cnt = *size - 1;
 
-  dma.curr_adr[channel] += cnt;
-  dma.curr_cnt[channel] -= cnt;
-  if (dma.curr_cnt[channel] == 0) {
+  if (len > left) len = left;
+
+  dma.curr_adr[channel] += len;
+  dma.curr_cnt[channel] -= len;
+  if (dma.curr_cnt[channel] == 0xFFFF) {
+    dma.curr_cnt[channel] = 0;
     dma.status |= (1 << channel);
   }
 
-  *size = cnt + 1;
+  *size = len;
   return adr;
 }
 
-void dma_transfered(int channel) {
+void dma_transferred(int channel) {
   dma.curr_adr[channel] += dma.curr_cnt[channel];
   dma.curr_cnt[channel] = 0;
   dma.status |= (1 << channel);

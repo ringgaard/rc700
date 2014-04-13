@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
+#include <stdint.h>
 #include <SDL/SDL.h>
 #include "sim.h"
 #include "simglb.h"
@@ -55,6 +56,8 @@
 #define BG_COLOR 0x552200
 #define MI_COLOR 0x996611
 
+typedef uint32_t pixel_t;
+
 static SDL_Surface *term = NULL;
 extern unsigned char charrom[];
 extern unsigned char charram[];
@@ -71,14 +74,14 @@ unsigned char blank[] = {
   0x00, 0x00, 0x00, 0x00,
 };
 
-unsigned long palette[16] = {
+pixel_t palette[16] = {
   BG_COLOR, BG_COLOR, BG_COLOR, 0,
   FG_COLOR, MI_COLOR, BG_COLOR, 0,
   BG_COLOR, MI_COLOR, FG_COLOR, 0,
   FG_COLOR, FG_COLOR, FG_COLOR, 0,
 };
 
-void draw_screen(unsigned long *bitmap, unsigned char *text) {
+void draw_screen(pixel_t *bitmap, unsigned char *text) {
   int row, col, line, blk, grp;
   int clreos, clreol, uline;
   unsigned char **c;
@@ -87,8 +90,8 @@ void draw_screen(unsigned long *bitmap, unsigned char *text) {
   unsigned char ch;
   unsigned char m;
   unsigned char pixels;
-  unsigned long mask;
-  unsigned long *begin;
+  pixel_t mask;
+  pixel_t *begin;
   unsigned char *charmem;
   unsigned char *cell[80];
   unsigned char attr[80];
@@ -154,7 +157,7 @@ void draw_screen(unsigned long *bitmap, unsigned char *text) {
         for (grp = 14; grp > 0; --grp) {
           // Generate three screen pixels per character pixel pair.
           int color = mask & 0x03;
-          unsigned long *p = palette + (color << 2);
+          pixel_t *p = palette + (color << 2);
           *bitmap++ = *p++;
           *bitmap++ = *p++;
           *bitmap++ = *p++;
@@ -162,9 +165,17 @@ void draw_screen(unsigned long *bitmap, unsigned char *text) {
         }
       }
       
+#ifdef PIXELATED_DISPLAY
+      // Clear next pixel line.
+      {
+        int n;
+        for (n = 0; n < 40 * 3 * 7; ++n) *bitmap++ = BG_COLOR;
+      }
+#else
       // Duplicate previous pixel line.
       memcpy(bitmap, begin, 40 * 3 * 7 * 4);
       bitmap += 40 * 3 * 7;
+#endif
     }
   }
 }
@@ -233,7 +244,15 @@ int rcterm_keypressed(void) {
         case SDLK_RETURN: return '\r';
         default:
           code = event.key.keysym.unicode;
-          if (code > 0 && code <= 0x7F) return code;
+          switch (code) {
+            case 0xC6: return 0x5B; // AE
+            case 0xD8: return 0x5C; // OE
+            case 0xC5: return 0x5D; // AA
+            case 0xE6: return 0x7B; // ae
+            case 0xF8: return 0x7C; // oe
+            case 0xE5: return 0x7D; // aa
+            default: if (code > 0 && code <= 0x7F) return code;
+          }
       }
       break;
     
