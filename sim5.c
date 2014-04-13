@@ -309,11 +309,7 @@ int op_fd_handel(void)
     trap_fd       /* 0xff */
   };
 
-#ifdef WANT_TIM
   t = (*op_fd[*PC++]) ();   /* execute next opcode */
-#else
-  (*op_fd[*PC++]) ();
-#endif
 
 #ifdef WANT_PCC
     if (PC > ram + 65535) /* correct PC overrun */

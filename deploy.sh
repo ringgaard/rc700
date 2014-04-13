@@ -1,7 +1,21 @@
 #!/bin/sh
 
+echo "===== Build RC700 simulator for Linux"
 make rc700
-rm -f /mnt/www/rc702/rc700-src.zip /mnt/www/rc702/rc700.zip
-zip /mnt/www/rc702/rc700-src.zip *.c *.h Makefile roa375.rom rccpm22.imd
+
+echo "===== Build RC700 simulator for Windows"
+wine cmd /C winbuild.cmd
+
+
+echo "===== Make rc700-src.zip"
+rm -f /mnt/www/rc702/rc700-src.zip
+zip /mnt/www/rc702/rc700-src.zip *.c *.h Makefile Makefile.win roa375.rom rccpm22.imd
+
+echo "===== Make rc700.zip"
+rm -f /mnt/www/rc702/rc700.zip
 zip /mnt/www/rc702/rc700.zip rc700 rccpm22.imd
+
+echo "===== Make rc700-win.zip"
+rm -f /mnt/www/rc702/rc700-win.zip
+zip /mnt/www/rc702/rc700-win.zip rc700.exe rccpm22.imd SDL.dll
 

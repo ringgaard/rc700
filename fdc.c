@@ -499,8 +499,10 @@ int fdc_mount_disk(int drive, char *imagefile) {
   disk = load_disk_image(imagefile);
   if (disk) {
     fdc.disk[drive] = disk;
+    return 0;
   } else {
     W(printf("unable to load disk image in %s\n", imagefile));
+    return -1;
   }
 }
 

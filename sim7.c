@@ -305,11 +305,7 @@ int op_fdcb_handel(void)
       PC = ram;
 #endif
 
-#ifdef WANT_TIM
   t = (*op_fdcb[*PC++]) (d);  /* execute next opcode */
-#else
-  (*op_fdcb[*PC++]) (d);
-#endif
 
 #ifdef WANT_PCC
     if (PC > ram + 65535) /* again correct PC overrun */

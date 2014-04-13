@@ -307,12 +307,7 @@ long op_dd_handel(void)
     trap_dd       /* 0xff */
   };
 
-
-#ifdef WANT_TIM
   t = (*op_dd[*PC++]) ();   /* execute next opcode */
-#else
-  (*op_dd[*PC++]) ();
-#endif
 
 #ifdef WANT_PCC
     if (PC > ram + 65535) /* correct PC overrun */

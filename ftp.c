@@ -123,7 +123,7 @@ BYTE ftp_data_in(int dev) {
   LL(printf("ftp: data in\n"));
   if (!ftp.file) {
     ftp.status = FTP_STAT_INVALID;
-    return;
+    return 0xFF;
   }
   data = getc(ftp.file);
   if (data == EOF) {

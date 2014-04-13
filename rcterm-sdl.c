@@ -9,8 +9,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
+#ifdef WIN32
+#include <SDL.h>
+#else
 #include <stdint.h>
 #include <SDL/SDL.h>
+#endif
 #include "sim.h"
 #include "simglb.h"
 
@@ -56,7 +60,11 @@
 #define BG_COLOR 0x552200
 #define MI_COLOR 0x996611
 
+#ifdef WIN32
+typedef unsigned __int32 pixel_t;
+#else
 typedef uint32_t pixel_t;
+#endif
 
 static SDL_Surface *term = NULL;
 extern unsigned char charrom[];

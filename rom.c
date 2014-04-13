@@ -11,7 +11,11 @@
 #include "sim.h"
 #include "simglb.h"
 
+#ifdef WIN32
+#include "winbootrom"
+#else
 #include "bootrom"
+#endif
 
 #define L(x)
 

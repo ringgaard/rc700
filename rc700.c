@@ -8,9 +8,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <unistd.h>
 #include "sim.h"
 #include "simglb.h"
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 extern void init_io(void);
 extern void exit_io(void);
@@ -22,8 +26,16 @@ char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
 int refresh_ticks = 100000;
-int active_delay  =   0; //5000;
-int idle_delay    = 0; //200000;
+int active_delay  =   0; //5;
+int idle_delay    = 0; //200;
+
+void delay(int ms) {
+#ifdef WIN32
+  Sleep(ms);
+#else
+  usleep(ms * 1000);
+#endif
+}
 
 void cpu_poll() {
   static int tick = 0;
@@ -34,10 +46,10 @@ void cpu_poll() {
 
   if (!pio_poll() && !crt_poll()) {
     if (!active) {
-      usleep(idle_delay);
+      delay(idle_delay);
     } else {
       --active;
-      usleep(active_delay);
+      delay(active_delay);
     }
   } else {
     active = 1000;
@@ -70,7 +82,9 @@ static void simbreak(int sig) {
 }
 
 int main(int argc, char *argv[]) {
+#ifndef WIN32
   static struct sigaction sa;
+#endif
   int suspend = 0;
   int monitor = 0;
   int i;
@@ -118,8 +132,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
+#ifndef WIN32
   sa.sa_handler = simbreak;
   sigaction(SIGINT, &sa, NULL);
+#endif
 
   init_io();
   init_rc700();
@@ -146,8 +162,10 @@ int main(int argc, char *argv[]) {
 
   exit_io();
 
+#ifndef WIN32
   sa.sa_handler = SIG_DFL;
   sigaction(SIGINT, &sa, NULL);
+#endif
   
   for (i = 0; i < num_floppies; ++i) {
     if (floppy[i]) fdc_flush_disk(i, floppy[i]);

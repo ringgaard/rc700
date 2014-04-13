@@ -16,7 +16,9 @@
  * 04-OCT-06 Release 1.8 modified to compile on modern POSIX OS's
  */
 
+#ifndef WIN32
 #include <unistd.h>
+#endif
 #include <stdio.h>
 #include <time.h>
 #include "sim.h"
@@ -518,7 +520,9 @@ static int op_halt(void)    /* HALT */
     cpu_state = STOPPED;
   } else {
     while (int_type == 0) {
+#ifndef WIN32
       usleep(10000);
+#endif
       R += 99999;
     }
   }

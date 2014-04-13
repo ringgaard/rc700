@@ -24,7 +24,9 @@
  *  on a host system.
  */
 
+#ifndef WIN32
 #include <unistd.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -260,8 +262,8 @@ static int handel_break(void) {
     return(1);    /* pass not reached, continue */
   printf("Software breakpoint %d reached at %04x\n", i, break_address);
   soft[i].sb_passcount = 0; /* reset passcounter */
-  return(0);      /* pass reached, stop */
 #endif
+  return(0);      /* pass reached, stop */
 }
 
 /*
@@ -766,6 +768,7 @@ static void do_count(char *s) {
  *    f = R / 300000
  */
 static void do_clock(void) {
+#ifndef WIN32
   static BYTE save[3];
 
   save[0] = *(ram + 0x0000);  /* save memory locations */
@@ -788,6 +791,7 @@ static void do_clock(void) {
     printf("clock frequency = %5.2f Mhz\n", ((float) R) / 300000.0);
   else
     puts("Interrupted by user");
+#endif
 }
 
 /*

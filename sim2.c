@@ -358,11 +358,7 @@ int op_cb_handel(void)
     op_sb7a       /* 0xff */
   };
 
-#ifdef WANT_TIM
   t = (*op_cb[*PC++]) ();   /* execute next opcode */
-#else
-  (*op_cb[*PC++]) ();
-#endif
 
 #ifdef WANT_PCC
     if (PC > ram + 65535) /* correct PC overrun */

@@ -135,8 +135,8 @@ void crt_param_out(BYTE data, int dev) {
 }
 
 BYTE crt_status_in(int dev) {
-  LL(printf("crt: read status %02X\n", crt.status));
   BYTE status = crt.status;
+  LL(printf("crt: read status %02X\n", status));
   crt.status &= ~(CRT_STAT_FO | CRT_STAT_DU | CRT_STAT_IC | CRT_STAT_LP | CRT_STAT_IR);
   return status;
 }
