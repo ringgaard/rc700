@@ -1,0 +1,25 @@
+#
+# Windows Makefile for RC700 simulator
+#
+
+all: rc700.exe
+
+clean:
+	del rc700.exe rom2struct.exe winbootrom *.obj
+
+SRCFILES=sim1.c sim2.c sim3.c sim4.c sim5.c sim6.c sim7.c disas.c iosim.c simglb.c simctl.c \
+         rc700.c rom.c charrom.c charram.c pio.c sio.c ctc.c dma.c crt.c fdc.c ftp.c disk.c fifo.c
+
+HDRFILES=sim.h simglb.h disk.h winbootrom
+ROM=roa375.rom
+SDL=SDL-1.2.15
+
+rc700.exe: $(SRCFILES) $(HDRFILES) rcterm-sdl.c
+	$(CC) -o $@ /O2 /D WIN32 $(SRCFILES) rcterm-sdl.c /I $(SDL)/include /link $(SDL)/lib/x86/SDL.lib
+
+rom2struct.exe: rom2struct.c
+	$(CC) -o $@ rom2struct.c
+
+winbootrom: rom2struct.exe $(ROM)
+	rom2struct.exe $(ROM) > winbootrom
+
