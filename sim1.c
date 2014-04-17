@@ -520,9 +520,7 @@ static int op_halt(void)    /* HALT */
     cpu_state = STOPPED;
   } else {
     while (int_type == 0) {
-#ifndef WIN32
-      usleep(10000);
-#endif
+      delay(10);
       R += 99999;
     }
   }

@@ -40,18 +40,18 @@ void (*refresh)();
  */
 static BYTE in_trap(int dev) {
   if (i_flag) {
-    W(printf("Unhandled I/O, input from port %02X\n", dev));
-    cpu_error = IOTRAP;
-    cpu_state = STOPPED;
+    W(printf("io: unhandled I/O, input from port %02X\n", dev));
+    //cpu_error = IOTRAP;
+    //cpu_state = STOPPED;
   }
   return((BYTE) 0);
 }
 
 static void out_trap(BYTE data, int dev) {
   if (i_flag) {
-    W(printf("Unhandled I/O, output %02X to port %02X\n", data, dev));
-    cpu_error = IOTRAP;
-    cpu_state = STOPPED;
+    W(printf("io: unhandled I/O, output %02X to port %02X\n", data, dev));
+    //cpu_error = IOTRAP;
+    //cpu_state = STOPPED;
   }
 }
 

@@ -26,8 +26,8 @@ char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
 int refresh_ticks = 100000;
-int active_delay  =   0; //5;
-int idle_delay    = 0; //200;
+int active_delay  =   5;
+int idle_delay    = 200;
 
 void delay(int ms) {
 #ifdef WIN32
@@ -79,6 +79,19 @@ static void init_rc700(void) {
 static void simbreak(int sig) {
   cpu_error = USERINT;
   cpu_state = STOPPED;
+}
+
+static void dump_ram(char *core) {
+  FILE *f;
+
+  printf("dump ram to %s\n", core);
+  f = fopen(core, "wb");
+  if (!f) {
+    perror(core);
+    return;
+  }
+  fwrite(ram, 65536, 1, f);
+  fclose(f);
 }
 
 int main(int argc, char *argv[]) {
@@ -161,6 +174,8 @@ int main(int argc, char *argv[]) {
   }
 
   exit_io();
+
+  //dump_ram("core.bin");
 
 #ifndef WIN32
   sa.sa_handler = SIG_DFL;

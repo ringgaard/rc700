@@ -122,6 +122,7 @@ extern void interrupt(int vec);
 extern void register_port(int adr, BYTE (*in)(int dev), void (*out)(BYTE data, int dev), int dev);
 extern void register_refresh(void (*handler)());
 extern void ctc_trigger(int channel);
+extern void delay(int ms);
 
 extern int fdc_mount_disk(int drive, char *imagefile);
 extern void fdc_flush_disk(int drive, char *imagefile);

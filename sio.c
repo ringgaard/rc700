@@ -72,6 +72,7 @@ void sio_receive(int dev, char *data, int size) {
 
 void sio_reset(int dev) {
   memset(&sio[dev], 0, sizeof(struct serial_port));
+  sio[dev].rr[0] |= SIO_R0_TX_PEND;
 }
 
 BYTE sio_data_in(int dev) {
@@ -91,7 +92,13 @@ BYTE sio_data_in(int dev) {
 }
 
 void sio_data_out(BYTE data, int dev) {
-  L(printf("sio%d: data out %02X\n", dev, data));
+  LL(printf("sio%d: data out %02X\n", dev, data));
+  putchar(data);
+  sio[dev].rr[0] |= SIO_R0_TX_PEND;
+  if (sio[dev].wr[1] & SIO_W1_TX_INT_ENABLE) {
+    sio[dev].rr[0] |= SIO_R0_INT;
+    interrupt(sio[1].wr[2]);
+  }
 }
 
 BYTE sio_ctrl_in(int dev)  {

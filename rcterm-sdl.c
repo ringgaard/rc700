@@ -46,6 +46,7 @@
  */
 
 #define ATTR_MODE      0x80
+#define ATTR_HIGHLIGHT 0x01
 #define ATTR_BLINK     0x02
 #define ATTR_SEMI      0x04
 #define ATTR_REVERSE   0x10
@@ -123,7 +124,7 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
             case ATTR_CLREOS: clreos = 1; break;
           }
         } else {
-          mode = ch & (ATTR_BLINK | ATTR_SEMI | ATTR_REVERSE | ATTR_UNDERLINE);
+          mode = ch & (ATTR_HIGHLIGHT | ATTR_BLINK | ATTR_SEMI | ATTR_REVERSE | ATTR_UNDERLINE);
           charmem = mode & ATTR_SEMI ? charram : charrom;
         }
         *a++ = 0;
@@ -173,17 +174,9 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
         }
       }
       
-#ifdef PIXELATED_DISPLAY
-      // Clear next pixel line.
-      {
-        int n;
-        for (n = 0; n < 40 * 3 * 7; ++n) *bitmap++ = BG_COLOR;
-      }
-#else
       // Duplicate previous pixel line.
       memcpy(bitmap, begin, 40 * 3 * 7 * 4);
       bitmap += 40 * 3 * 7;
-#endif
     }
   }
 }

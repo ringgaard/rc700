@@ -17,7 +17,7 @@
  */
 
 /*
- *  This modul contains all the global variables
+ *  This module contains all the global variables
  */
 
 #include "sim.h"
@@ -30,8 +30,8 @@ int  F;       /* normaly 8-Bit, but int is faster */
 WORD IX, IY;
 BYTE A_,B_,C_,D_,E_,H_,L_;  /* Z80 secoundary registers */
 int  F_;
-BYTE *PC;     /* Z80 programm counter */
-BYTE *STACK;      /* Z80 stackpointer */
+BYTE *PC;     /* Z80 program counter */
+BYTE *STACK;      /* Z80 stack pointer */
 BYTE I;       /* Z80 interrupt register */
 BYTE IFF;     /* Z80 interrupt flags */
 long R;       /* Z80 refresh register */
@@ -79,10 +79,10 @@ int s_flag;         /* flag for -s option */
 int l_flag;         /* flag for -l option */
 int m_flag;         /* flag for -m option */
 int x_flag;         /* flag for -x option */
-int i_flag;         /* flag for -i option */
+int i_flag = 1;     /* flag for -i option */
 int f_flag;         /* flag for -f option */
 char xfn[LENCMD];   /* buffer for filename (option -x) */
-int break_flag = 1; /* 1 = break at HALT, 0 = execute HALT */
+int break_flag = 0; /* 1 = break at HALT, 0 = execute HALT */
 int cpu_state;      /* status of CPU emulation */
 int cpu_error;      /* error status of CPU emulation */
 int int_mode;       /* CPU interrupt mode (IM 0, IM 1, IM 2) */
@@ -95,7 +95,7 @@ int clk_ctr = 0;    /* counter for generating ticks from the system clock */
 
 
 /*
- *  Table to get parity as fast as possible
+ *  Table with pre-computed parity
  */
 int parity[256] = {
     0 /* 00000000 */, 1 /* 00000001 */, 1 /* 00000010 */,

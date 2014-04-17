@@ -293,7 +293,7 @@ static struct opt optab[256] = {
 };
 
 static int addr;
-static char *unkown = "???";
+static char *unknown = "???";
 static char *reg[] = { "B", "C", "D", "E", "H", "L", "(HL)", "A" };
 static char *regix = "IX";
 static char *regiy = "IY";
@@ -307,7 +307,7 @@ static char *regiy = "IY";
  *  disassembly the pointer to the op-code will be
  *  increased by the size of the op-code, so that
  *  disass() can be called again.
- *  The secound argument is the (Z80) address of the
+ *  The second argument is the (Z80) address of the
  *  op-code to disassemble. It is used to calculate the
  *  destination address of relative jumps.
  */
@@ -435,7 +435,7 @@ static int cbop(char *s, unsigned char **p) {
     printf("%s\n", reg[b2 & 7]);
     return(2);
   }
-  puts(unkown);
+  puts(unknown);
   return(2);
 }
 
@@ -629,7 +629,7 @@ static int edop(char *s, unsigned char **p) {
     puts("OTDR");
     break;
   default:
-    puts(unkown);
+    puts(unknown);
   }
   return(len);
 }
@@ -842,7 +842,7 @@ static int ddfd(char *s, unsigned char **p) {
       printf("SET\t7,(%s+%02x)\n", ireg, *(*p + 2));
       break;
     default:
-      puts(unkown);
+      puts(unknown);
     }
     len = 4;
     break;
@@ -867,7 +867,7 @@ static int ddfd(char *s, unsigned char **p) {
     len = 2;
     break;
   default:
-    puts(unkown);
+    puts(unknown);
   }
   return(len);
 }

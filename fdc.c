@@ -13,7 +13,7 @@
 #include "simglb.h"
 #include "disk.h"
 
-#define L(x)
+#define L(x) x
 #define LL(x)
 #define W(x) x
 
@@ -329,6 +329,35 @@ void fdc_write_sectors(int drive) {
   L(printf("write done\n"));
 }
 
+void fdc_format_track(int drive, int head) {
+  int sector_size;
+  int s;
+
+  // Get command parameters.
+  int N = fdc.command[2];
+  int SC = fdc.command[3];
+  int GPL = fdc.command[4];
+  int D = fdc.command[5];
+  sector_size = 128 << N;
+
+  // Get mounted disk image for drive.
+  struct disk *disk = fdc.disk[drive];
+  if (!disk) {
+    W(printf("fdc: drive %d is not mounted\n", drive));
+    fdc_update_transfer_result(drive, fdc.cylinder[drive], head, 0, N);
+    return;
+  }
+
+  // Format track by filling all sectors on track with the filler byte.
+  L(printf("format: drive=%d head=%d cyl=%d N=%d (%d bytes/sector) SC=%d GPL=%d D=0x%02X\n", 
+           drive, head, fdc.cylinder[drive], N, sector_size, SC, GPL, D));
+  for (s = 0; s < SC; ++s) {
+    fill_disk_sector(disk, fdc.cylinder[drive], head, s, D);
+  }
+  fdc_update_transfer_result(drive, fdc.cylinder[drive], head, 0, N);
+  L(printf("format done\n"));
+}
+
 void fdc_execute_command(void) {
   int cmd, head, drive, srt, hut, intr, prev_st0;
 
@@ -342,7 +371,7 @@ void fdc_execute_command(void) {
   fdc.st1 = 0;
   switch (cmd) {
     case FDC_CMD_READ_TRACK:
-      printf("fdc: read track\n");
+      W(printf("fdc: read track, not implemented\n"));
       break;
 
     case FDC_CMD_SPECIFY:
@@ -399,7 +428,8 @@ void fdc_execute_command(void) {
       break;
 
     case FDC_CMD_FORMAT_TRACK:
-      W(printf("fdc: format track, not implemented\n"));
+      fdc_format_track(drive, head);
+      intr = 1;
       break;
 
     case FDC_CMD_SEEK:
