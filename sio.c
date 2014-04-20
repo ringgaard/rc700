@@ -59,7 +59,7 @@ void sio_check_receive(int dev) {
         // TODO: Check for Status Affects Vector bit to determine intvec
         L(printf("sio%d: gen intr %02X\n", dev, sio[1].wr[2]));
         sio[dev].rr[0] |= SIO_R0_INT;
-        interrupt(sio[1].wr[2]);
+        interrupt(sio[1].wr[2], dev + 4);
       }
     }
   }
@@ -97,7 +97,7 @@ void sio_data_out(BYTE data, int dev) {
   sio[dev].rr[0] |= SIO_R0_TX_PEND;
   if (sio[dev].wr[1] & SIO_W1_TX_INT_ENABLE) {
     sio[dev].rr[0] |= SIO_R0_INT;
-    interrupt(sio[1].wr[2]);
+    interrupt(sio[1].wr[2], dev + 4);
   }
 }
 

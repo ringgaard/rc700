@@ -29,6 +29,7 @@ extern BYTE ram[],*wrk_ram;
 extern int  s_flag,l_flag,m_flag,x_flag,break_flag,i_flag,f_flag,
     cpu_state, cpu_error,int_type,int_mode,int_vec,cntl_c,cntl_bs,
     parity[],sb_next;
+extern int int_chain[];
 extern float  freq;
 
 extern char xfn[];

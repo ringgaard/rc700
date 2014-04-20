@@ -118,7 +118,8 @@ extern void init_ftp(void);
 #define CTC_CHANNEL_CRT   2
 #define CTC_CHANNEL_FDC   3
 
-extern void interrupt(int vec);
+extern void interrupt(int vec, int priority);
+extern void genintr(void);
 extern void register_port(int adr, BYTE (*in)(int dev), void (*out)(BYTE data, int dev), int dev);
 extern void register_refresh(void (*handler)());
 extern void ctc_trigger(int channel);

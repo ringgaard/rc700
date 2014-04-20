@@ -5,7 +5,7 @@
  *
  * Intel 8237 DMA - Programmable DMA Controller
  * 
- * Channel 0: Extenal debugger
+ * Channel 0: Winchester disk controller
  * Channel 1: Floppy disk controller
  * Channel 2: Visual display controller
  * Channel 3: Visual display controller
@@ -17,6 +17,7 @@
 #include "simglb.h"
 
 #define L(x)
+#define LL(x)
 #define W(x) x
 
 #define NUM_DMA_CHANNELS 4
@@ -59,7 +60,7 @@ BYTE dma_status(int reg) {
   switch (reg) {
     case 0: 
       /* Read status register */
-      L(printf("dma: read status %02X PC=%04X\n", dma.status, PC - ram));
+      L(printf("dma: read status %02X PC=%04X\n", dma.status, (WORD) (PC - ram)));
       status = dma.status;
       dma.status &= 0xf0;
       return status;
@@ -106,7 +107,7 @@ void dma_command(BYTE data, int reg) {
       /* Write single mask register bit */
       channel = data & 0x03;
       value = (data >> 3) & 0x01;
-      L(printf("dma%d: %s mask\n", channel, value ? "set" : "clear"));
+      LL(printf("dma%d: %s mask\n", channel, value ? "set" : "clear"));
       if (value) {
         dma.mask |= 1 << channel;
       } else {
@@ -124,7 +125,7 @@ void dma_command(BYTE data, int reg) {
 
     case 4:
       /* Clear byte pointer flip/flop */
-      L(printf("dma: clear pointer flip/flop %02X\n", data));
+      LL(printf("dma: clear pointer flip/flop %02X\n", data));
       dma.flipflop = 0;
       break;
 
@@ -153,7 +154,7 @@ BYTE dma_adr_in(int channel) {
 }
 
 void dma_adr_out(BYTE data, int channel) {
-  L(printf("dma%d: write addr %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
+  L(if (channel < 2) printf("dma%d: write addr %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
   if (dma.flipflop) {
     dma.base_adr[channel] = (dma.base_adr[channel] & 0x00ff) | (data << 8);
   } else {
@@ -170,7 +171,7 @@ BYTE dma_cnt_in(int channel) {
 }
 
 void dma_cnt_out(BYTE data, int channel) {
-  L(printf("dma%d: write count %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
+  L(if (channel < 2) printf("dma%d: write count %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
   if (dma.flipflop) {
     dma.base_cnt[channel] = (dma.base_cnt[channel] & 0x00ff) | (data << 8);
   } else {
@@ -237,7 +238,7 @@ WORD dma_fetch(int channel, WORD *size) {
   }
 
   if (dma.mode[channel] & DMA_MODE_DECREMENT) {
-    L(printf("dma%d: cannot fetch in decrement mode\n"));
+    L(printf("dma%d: cannot fetch in decrement mode\n", channel));
   }
 
   if (len > left) len = left;

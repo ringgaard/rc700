@@ -13,7 +13,7 @@
 #include "simglb.h"
 #include "disk.h"
 
-#define L(x) x
+#define L(x)
 #define LL(x)
 #define W(x) x
 
@@ -332,6 +332,7 @@ void fdc_write_sectors(int drive) {
 void fdc_format_track(int drive, int head) {
   int sector_size;
   int s;
+  struct disk *disk;
 
   // Get command parameters.
   int N = fdc.command[2];
@@ -341,7 +342,7 @@ void fdc_format_track(int drive, int head) {
   sector_size = 128 << N;
 
   // Get mounted disk image for drive.
-  struct disk *disk = fdc.disk[drive];
+  disk = fdc.disk[drive];
   if (!disk) {
     W(printf("fdc: drive %d is not mounted\n", drive));
     fdc_update_transfer_result(drive, fdc.cylinder[drive], head, 0, N);

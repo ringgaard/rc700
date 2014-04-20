@@ -93,6 +93,10 @@ int cntl_c;         /* flag for cntl-c entered */
 int cntl_bs;        /* flag for cntl-\ entered */
 int clk_ctr = 0;    /* counter for generating ticks from the system clock */
 
+/*
+ * Interrupt daisy chain
+ */
+int int_chain[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
 /*
  *  Table with pre-computed parity

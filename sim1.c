@@ -488,17 +488,36 @@ void cpu(void)
 /*
  * Generate CPU interrupt
  */
-void interrupt(int vec)
-{
-  if (int_type != INT_NONE) {
-    printf("warning: int %02X nested with int %02X type %d\n", vec, int_vec, int_type);
+void genintr(void) {
+  int *c;
+  
+  if (IFF == 3) {
+    for (c = int_chain; c < int_chain + 8; ++c) {
+      if (*c != -1) {
+        int_type = INT_INT;
+        int_vec = *c;
+        *c = -1;
+        return;
+      }
+    }
   }
-  int_type = INT_INT;
-  int_vec = vec;
 }
 
 /*
- *  Trap not implemented opcodes. This function may be usefull
+ * Queue CPU interrupt
+ */
+void interrupt(int vec, int priority)
+{
+  if (int_type == INT_NONE && IFF == 3) {
+    int_type = INT_INT;
+    int_vec = vec;
+  } else {
+    int_chain[priority] = vec;
+  }
+}
+
+/*
+ *  Trap not implemented opcodes. This function may be useful
  *  later to trap some wanted opcodes.
  */
 static int op_notimpl(void)
@@ -589,6 +608,7 @@ static int op_daa(void)     /* DAA */
 static int op_ei(void)      /* EI */
 {
   IFF = 3;
+  genintr();
   return(4);
 }
 

@@ -67,7 +67,7 @@ void ctc_trigger(int channel) {
     ctc[channel].counter = ctc[channel].time;
     if (ctc[channel].control & CTC_CTRL_INT)  {
       L(printf("ctc%d: intr vec %02X\n", channel, ctc[channel].int_vec));
-      interrupt(ctc[channel].int_vec);
+      interrupt(ctc[channel].int_vec, channel);
     }
   }
 }

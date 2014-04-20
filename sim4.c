@@ -364,6 +364,7 @@ static int op_reti(void)    /* RETI */
     STACK = ram;
 #endif
   PC = ram + i;
+  genintr();
   return(14);
 }
 

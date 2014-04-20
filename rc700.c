@@ -26,8 +26,8 @@ char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
 int refresh_ticks = 100000;
-int active_delay  =   5;
-int idle_delay    = 200;
+int active_delay  =   0; //5;
+int idle_delay    = 0; //200;
 
 void delay(int ms) {
 #ifdef WIN32
@@ -69,6 +69,7 @@ static void init_rc700(void) {
   init_dma();
   init_crt();
   init_fdc();
+  init_wdc();
   init_ftp();
   
   for (i = 0; i < num_floppies; ++i) {

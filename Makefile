@@ -8,7 +8,7 @@ clean:
 	rm rc700 bootrom
 
 SRCFILES=sim1.c sim2.c sim3.c sim4.c sim5.c sim6.c sim7.c disas.c iosim.c simglb.c simctl.c \
-         rc700.c rom.c charrom.c charram.c pio.c sio.c ctc.c dma.c crt.c fdc.c ftp.c disk.c fifo.c
+         rc700.c rom.c charrom.c charram.c pio.c sio.c ctc.c dma.c crt.c fdc.c wdc.c ftp.c disk.c fifo.c
 
 HDRFILES=sim.h simglb.h disk.h bootrom
 ROM=roa375.rom

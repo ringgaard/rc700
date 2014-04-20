@@ -47,7 +47,7 @@ struct parallel_port pio[NUM_PIO_PORTS];
 void pio_strobe(int dev) {
   if (pio[dev].int_ctrl & PIO_INT_ENABLE) {
     L(printf("pio%d: strobe\n", dev));
-    interrupt(pio[dev].int_vec);
+    interrupt(pio[dev].int_vec, dev + 6);
   }
 }
 
