@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * File transfer device
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// File transfer device
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -38,13 +38,13 @@ struct ftp {
 
 struct ftp ftp;
 
-void ftp_reset(void) {
+void ftp_reset() {
   L(printf("ftp: reset\n"));
   if (ftp.file) fclose(ftp.file);
   memset(&ftp, 0, sizeof(struct ftp));
 }
 
-void ftp_filename(void) {
+void ftp_filename() {
   L(printf("ftp: filename\n"));
   ftp.fnmode = 1;
   ftp.fnidx = 0;
@@ -52,7 +52,7 @@ void ftp_filename(void) {
   ftp.status = FTP_STAT_OK;
 }
 
-void ftp_open(void) {
+void ftp_open() {
   L(printf("ftp: open %s\n", ftp.filename));
   if (ftp.file) {
     ftp.status = FTP_STAT_INVALID;
@@ -69,7 +69,7 @@ void ftp_open(void) {
   ftp.status = 0;
 }
 
-void ftp_create(void) {
+void ftp_create() {
   L(printf("ftp: create %s\n", ftp.filename));
   if (ftp.file) {
     ftp.status = FTP_STAT_INVALID;
@@ -86,7 +86,7 @@ void ftp_create(void) {
   ftp.status = 0;
 }
 
-void ftp_close(void) {
+void ftp_close() {
   L(printf("ftp: close %s\n", ftp.filename));
   if (!ftp.file) {
     ftp.status = FTP_STAT_INVALID;
@@ -155,7 +155,7 @@ void ftp_data_out(BYTE data, int dev) {
   }
 }
 
-void init_ftp(void) {
+void init_ftp() {
   memset(&ftp, 0, sizeof(struct ftp));
   register_port(0xe0, ftp_status, ftp_command, 0);
   register_port(0xe1, ftp_data_in, ftp_data_out, 0);

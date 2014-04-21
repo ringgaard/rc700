@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * ROM interface
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// ROM interface
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -60,7 +60,7 @@ void sem_data_out(BYTE data, int dev) {
   charram[(sem_char << 4) + sem_line] = data;
 }
 
-void init_rom(void) {
+void init_rom() {
   int i;
 
   // Initialize memory with contents of boot prom.

@@ -1,13 +1,13 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * Z80 SIO - Serial I/O
- *
- * SIO port A: terminal
- * SIO port B: printer
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// Z80 SIO - Serial I/O
+//
+// SIO port A: terminal
+// SIO port B: printer
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -170,7 +170,7 @@ void sio_ctrl_out(BYTE data, int dev) {
   sio_check_receive(dev);
 }
 
-void init_sio(void) {
+void init_sio() {
   sio_reset(0);
   sio_reset(1);
 

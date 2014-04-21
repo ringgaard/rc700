@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * WDC1002 - Winchester Disk Controller 
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// WDC1002 - Winchester Disk Controller 
+//
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ void wdc_command(BYTE data, int dev) {
   }
 }
 
-void init_wdc(void) {
+void init_wdc() {
   int i;
 
   memset(&wdc, 0, sizeof(struct winchester_disk_controller));

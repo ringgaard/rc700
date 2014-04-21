@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * Disk image interface
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// Disk image interface
+//
 
 #define MAX_SIDES     2
 #define MAX_CYLINDERS 80

@@ -1,42 +1,309 @@
-/*
- * Z80SIM  -  a Z80-CPU simulator
- *
- * Copyright (C) 1987-2006 by Udo Munk
- *
- * History:
- * 28-SEP-87 Development on TARGON/35 with AT&T Unix System V.3
- * 11-JAN-89 Release 1.1
- * 08-FEB-89 Release 1.2
- * 13-MAR-89 Release 1.3
- * 09-FEB-90 Release 1.4 Ported to TARGON/31 M10/30
- * 20-DEC-90 Release 1.5 Ported to COHERENT 3.0
- * 10-JUN-92 Release 1.6 long casting problem solved with COHERENT 3.2
- *       and some optimization
- * 25-JUN-92 Release 1.7 comments in english
- * 07-OCT-06 Release 1.8 modified to compile on modern POSIX OS's
- */
-
-/*
- *  Like the function "cpu()" this one emulates 4 byte opcodes
- *  starting with 0xdd 0xcb
- */
+//
+// Z80SIM  -  a Z80-CPU simulator
+//
+// Copyright (C) 1987-2006 by Udo Munk
+//
+// Emulation of multi byte opcodes starting with 0xdd 0xcb
+//
 
 #include "sim.h"
 #include "simglb.h"
 
-static int trap_ddcb(void);
-static int op_tb0ixd(int), op_tb1ixd(int), op_tb2ixd(int), op_tb3ixd(int);
-static int op_tb4ixd(int), op_tb5ixd(int), op_tb6ixd(int), op_tb7ixd(int);
-static int op_rb0ixd(int), op_rb1ixd(int), op_rb2ixd(int), op_rb3ixd(int);
-static int op_rb4ixd(int), op_rb5ixd(int), op_rb6ixd(int), op_rb7ixd(int);
-static int op_sb0ixd(int), op_sb1ixd(int), op_sb2ixd(int), op_sb3ixd(int);
-static int op_sb4ixd(int), op_sb5ixd(int), op_sb6ixd(int), op_sb7ixd(int);
-static int op_rlcixd(int), op_rrcixd(int), op_rlixd(int), op_rrixd(int);
-static int op_slaixd(int), op_sraixd(int), op_srlixd(int);
+// Trap for illegal 0xdd 0xcb multi byte opcodes.
+static int trap_ddcb() {
+  cpu_error = OPTRAP4;
+  cpu_state = STOPPED;
+  return 0;
+}
 
-int op_ddcb_handel(void)
-{
-  static int (*op_ddcb[256]) () = {
+// BIT 0,(IX+d)
+static int op_tb0ixd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IX + data) & 1) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 1,(IX+d)
+static int op_tb1ixd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IX + data) & 2) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 2,(IX+d)
+static int op_tb2ixd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IX + data) & 4) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 3,(IX+d)
+static int op_tb3ixd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IX + data) & 8) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 4,(IX+d)
+static int op_tb4ixd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IX + data) & 16) ? (F &= ~(Z_FLAG | P_FLAG))
+          : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 5,(IX+d)
+static int op_tb5ixd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IX + data) & 32) ? (F &= ~(Z_FLAG | P_FLAG))
+          : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 6,(IX+d)
+static int op_tb6ixd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IX + data) & 64) ? (F &= ~(Z_FLAG | P_FLAG))
+          : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 7,(IX+d)
+static int op_tb7ixd(int data) {
+  F &= ~N_FLAG;
+  F |= H_FLAG;
+  if (*(ram + IX + data) & 128) {
+    F &= ~(Z_FLAG | P_FLAG);
+    F |= S_FLAG;
+  } else {
+    F |= (Z_FLAG | P_FLAG);
+    F &= ~S_FLAG;
+  }
+  return 20;
+}
+
+// RES 0,(IX+d)
+static int op_rb0ixd(int data) {
+  *(ram + IX + data) &= ~1;
+  return 23;
+}
+
+// RES 1,(IX+d)
+static int op_rb1ixd(int data) {
+  *(ram + IX + data) &= ~2;
+  return 23;
+}
+
+// RES 2,(IX+d)
+static int op_rb2ixd(int data) {
+  *(ram + IX + data) &= ~4;
+  return 23;
+}
+
+// RES 3,(IX+d)
+static int op_rb3ixd(int data) {
+  *(ram + IX + data) &= ~8;
+  return 23;
+}
+
+// RES 4,(IX+d)
+static int op_rb4ixd(int data) {
+  *(ram + IX + data) &= ~16;
+  return 23;
+}
+
+// RES 5,(IX+d)
+static int op_rb5ixd(int data) {
+  *(ram + IX + data) &= ~32;
+  return 23;
+}
+
+// RES 6,(IX+d)
+static int op_rb6ixd(int data) {
+  *(ram + IX + data) &= ~64;
+  return 23;
+}
+
+// RES 7,(IX+d)
+static int op_rb7ixd(int data) {
+  *(ram + IX + data) &= ~128;
+  return 23;
+}
+
+// SET 0,(IX+d)
+static int op_sb0ixd(int data) {
+  *(ram + IX + data) |= 1;
+  return 23;
+}
+
+// SET 1,(IX+d)
+static int op_sb1ixd(int data) {
+  *(ram + IX + data) |= 2;
+  return 23;
+}
+
+// SET 2,(IX+d)
+static int op_sb2ixd(int data) {
+  *(ram + IX + data) |= 4;
+  return 23;
+}
+
+// SET 3,(IX+d)
+static int op_sb3ixd(int data) {
+  *(ram + IX + data) |= 8;
+  return 23;
+}
+
+// SET 4,(IX+d)
+static int op_sb4ixd(int data) {
+  *(ram + IX + data) |= 16;
+  return 23;
+}
+
+// SET 5,(IX+d)
+static int op_sb5ixd(int data) {
+  *(ram + IX + data) |= 32;
+  return 23;
+}
+
+// SET 6,(IX+d)
+static int op_sb6ixd(int data) {
+  *(ram + IX + data) |= 64;
+  return 23;
+}
+
+// SET 7,(IX+d)
+static int op_sb7ixd(int data) {
+  *(ram + IX + data) |= 128;
+  return 23;
+}
+
+// RLC (IX+d)
+static int op_rlcixd(int data) {
+  int i;
+  BYTE *p;
+
+  p = ram + IX + data;
+  i = *p & 128;
+  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  F &= ~(H_FLAG | N_FLAG);
+  *p <<= 1;
+  if (i) *p |= 1;
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// RRC (IX+d)
+static int op_rrcixd(int data) {
+  int i;
+  BYTE *p;
+
+  p = ram + IX + data;
+  i = *p & 1;
+  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  F &= ~(H_FLAG | N_FLAG);
+  *p >>= 1;
+  if (i) *p |= 128;
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// RL (IX+d)
+static int op_rlixd(int data) {
+  int old_c_flag;
+  BYTE *p;
+
+  p = ram + IX + data;
+  old_c_flag = F & C_FLAG;
+  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p <<= 1;
+  if (old_c_flag) *p |= 1;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// RR (IX+d)
+static int op_rrixd(int data) {
+  int old_c_flag;
+  BYTE *p;
+
+  old_c_flag = F & C_FLAG;
+  p = ram + IX + data;
+  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p >>= 1;
+  if (old_c_flag) *p |= 128;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// SLA (IX+d)
+static int op_slaixd(int data) {
+  BYTE *p;
+
+  p = ram + IX + data;
+  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p <<= 1;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// SRA (IX+d)
+static int op_sraixd(int data) {
+  int i;
+  BYTE *p;
+
+  p = ram + IX + data;
+  i = *p & 128;
+  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p >>= 1;
+  *p |= i;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// SRL (IX+d)
+static int op_srlixd(int data) {
+  BYTE *p;
+
+  p = ram + IX + data;
+  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p >>= 1;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+int op_ddcb_handler() {
+  static int (*op_ddcb[256])() = {
     trap_ddcb,      /* 0x00 */
     trap_ddcb,      /* 0x01 */
     trap_ddcb,      /* 0x02 */
@@ -59,7 +326,7 @@ int op_ddcb_handel(void)
     trap_ddcb,      /* 0x13 */
     trap_ddcb,      /* 0x14 */
     trap_ddcb,      /* 0x15 */
-    op_rlixd,     /* 0x16 */
+    op_rlixd,       /* 0x16 */
     trap_ddcb,      /* 0x17 */
     trap_ddcb,      /* 0x18 */
     trap_ddcb,      /* 0x19 */
@@ -67,7 +334,7 @@ int op_ddcb_handel(void)
     trap_ddcb,      /* 0x1b */
     trap_ddcb,      /* 0x1c */
     trap_ddcb,      /* 0x1d */
-    op_rrixd,     /* 0x1e */
+    op_rrixd,       /* 0x1e */
     trap_ddcb,      /* 0x1f */
     trap_ddcb,      /* 0x20 */
     trap_ddcb,      /* 0x21 */
@@ -292,322 +559,27 @@ int op_ddcb_handel(void)
     trap_ddcb,      /* 0xfc */
     trap_ddcb,      /* 0xfd */
     op_sb7ixd,      /* 0xfe */
-    trap_ddcb     /* 0xff */
+    trap_ddcb       /* 0xff */
   };
 
-  register int d;
-  register int t;
+  int d;
+  int t;
 
   d = (char) *PC++;
 
 #ifdef WANT_PCC
-    if (PC > ram + 65535) /* correct PC overrun */
-      PC = ram;
+  // Correct PC overrun.
+  if (PC > ram + 65535) PC = ram;
 #endif
 
-  t = (*op_ddcb[*PC++]) (d);  /* execute next opcode */
+  // Execute next opcode.
+  t = (*op_ddcb[*PC++])(d);
 
 #ifdef WANT_PCC
-    if (PC > ram + 65535) /* again correct PC overrun */
-      PC = ram;
+  // Correct PC overrun.
+  if (PC > ram + 65535) PC = ram;
 #endif
 
-  return(t);
+  return t;
 }
 
-/*
- *  This function traps all illegal opcodes following the
- *  initial 0xdd 0xcb of a 4 byte opcode.
- */
-static int trap_ddcb(void)
-{
-  cpu_error = OPTRAP4;
-  cpu_state = STOPPED;
-  return(0);
-}
-
-static int op_tb0ixd(int data)    /* BIT 0,(IX+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IX + data) & 1) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb1ixd(int data)    /* BIT 1,(IX+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IX + data) & 2) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb2ixd(int data)    /* BIT 2,(IX+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IX + data) & 4) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb3ixd(int data)    /* BIT 3,(IX+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IX + data) & 8) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb4ixd(int data)    /* BIT 4,(IX+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IX + data) & 16) ? (F &= ~(Z_FLAG | P_FLAG))
-          : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb5ixd(int data)    /* BIT 5,(IX+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IX + data) & 32) ? (F &= ~(Z_FLAG | P_FLAG))
-          : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb6ixd(int data)    /* BIT 6,(IX+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IX + data) & 64) ? (F &= ~(Z_FLAG | P_FLAG))
-          : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb7ixd(int data)    /* BIT 7,(IX+d) */
-{
-  F &= ~N_FLAG;
-  F |= H_FLAG;
-  if (*(ram + IX + data) & 128) {
-    F &= ~(Z_FLAG | P_FLAG);
-    F |= S_FLAG;
-  } else {
-    F |= (Z_FLAG | P_FLAG);
-    F &= ~S_FLAG;
-  }
-  return(20);
-}
-
-static int op_rb0ixd(int data)    /* RES 0,(IX+d) */
-{
-  *(ram + IX + data) &= ~1;
-  return(23);
-}
-
-static int op_rb1ixd(int data)    /* RES 1,(IX+d) */
-{
-  *(ram + IX + data) &= ~2;
-  return(23);
-}
-
-static int op_rb2ixd(int data)    /* RES 2,(IX+d) */
-{
-  *(ram + IX + data) &= ~4;
-  return(23);
-}
-
-static int op_rb3ixd(int data)    /* RES 3,(IX+d) */
-{
-  *(ram + IX + data) &= ~8;
-  return(23);
-}
-
-static int op_rb4ixd(int data)    /* RES 4,(IX+d) */
-{
-  *(ram + IX + data) &= ~16;
-  return(23);
-}
-
-static int op_rb5ixd(int data)    /* RES 5,(IX+d) */
-{
-  *(ram + IX + data) &= ~32;
-  return(23);
-}
-
-static int op_rb6ixd(int data)    /* RES 6,(IX+d) */
-{
-  *(ram + IX + data) &= ~64;
-  return(23);
-}
-
-static int op_rb7ixd(int data)    /* RES 7,(IX+d) */
-{
-  *(ram + IX + data) &= ~128;
-  return(23);
-}
-
-static int op_sb0ixd(int data)    /* SET 0,(IX+d) */
-{
-  *(ram + IX + data) |= 1;
-  return(23);
-}
-
-static int op_sb1ixd(int data)    /* SET 1,(IX+d) */
-{
-  *(ram + IX + data) |= 2;
-  return(23);
-}
-
-static int op_sb2ixd(int data)    /* SET 2,(IX+d) */
-{
-  *(ram + IX + data) |= 4;
-  return(23);
-}
-
-static int op_sb3ixd(int data)    /* SET 3,(IX+d) */
-{
-  *(ram + IX + data) |= 8;
-  return(23);
-}
-
-static int op_sb4ixd(int data)    /* SET 4,(IX+d) */
-{
-  *(ram + IX + data) |= 16;
-  return(23);
-}
-
-static int op_sb5ixd(int data)    /* SET 5,(IX+d) */
-{
-  *(ram + IX + data) |= 32;
-  return(23);
-}
-
-static int op_sb6ixd(int data)    /* SET 6,(IX+d) */
-{
-  *(ram + IX + data) |= 64;
-  return(23);
-}
-
-static int op_sb7ixd(int data)    /* SET 7,(IX+d) */
-{
-  *(ram + IX + data) |= 128;
-  return(23);
-}
-
-static int op_rlcixd(int data)    /* RLC (IX+d) */
-{
-  register int i;
-  register BYTE *p;
-
-  p = ram + IX + data;
-  i = *p & 128;
-  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  F &= ~(H_FLAG | N_FLAG);
-  *p <<= 1;
-  if (i) *p |= 1;
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_rrcixd(int data)    /* RRC (IX+d) */
-{
-  register int i;
-  register BYTE *p;
-
-  p = ram + IX + data;
-  i = *p & 1;
-  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  F &= ~(H_FLAG | N_FLAG);
-  *p >>= 1;
-  if (i) *p |= 128;
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_rlixd(int data)   /* RL (IX+d) */
-{
-  register int old_c_flag;
-  register BYTE *p;
-
-  p = ram + IX + data;
-  old_c_flag = F & C_FLAG;
-  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p <<= 1;
-  if (old_c_flag) *p |= 1;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_rrixd(int data)   /* RR (IX+d) */
-{
-  register int old_c_flag;
-  register BYTE *p;
-
-  old_c_flag = F & C_FLAG;
-  p = ram + IX + data;
-  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p >>= 1;
-  if (old_c_flag) *p |= 128;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_slaixd(int data)    /* SLA (IX+d) */
-{
-  register BYTE *p;
-
-  p = ram + IX + data;
-  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p <<= 1;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_sraixd(int data)    /* SRA (IX+d) */
-{
-  register int i;
-  register BYTE *p;
-
-  p = ram + IX + data;
-  i = *p & 128;
-  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p >>= 1;
-  *p |= i;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_srlixd(int data)    /* SRL (IX+d) */
-{
-  register BYTE *p;
-
-  p = ram + IX + data;
-  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p >>= 1;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}

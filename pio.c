@@ -1,13 +1,13 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * Z80 PIO - Parallel I/O 
- *
- * PIO port A: keyboard
- * PIO port B: parallel i/o
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// Z80 PIO - Parallel I/O 
+//
+// PIO port A: keyboard
+// PIO port B: parallel i/o
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -34,12 +34,12 @@
 #define PIO_INT_ENABLE       0x80
 
 struct parallel_port {
-  BYTE int_vec;      /* Interrupt vector */
-  BYTE mode;         /* I/O mode */
-  BYTE int_ctrl;     /* Interrupt control word */
-  BYTE mask;         /* Interrupt data mask */
-  struct fifo rx;    /* Receive buffer */
-  struct fifo tx;    /* Transmit buffer */
+  BYTE int_vec;      // Interrupt vector
+  BYTE mode;         // I/O mode
+  BYTE int_ctrl;     // Interrupt control word
+  BYTE mask;         // Interrupt data mask
+  struct fifo rx;    // Receive buffer
+  struct fifo tx;    // Transmit buffer
 };
 
 struct parallel_port pio[NUM_PIO_PORTS];
@@ -83,24 +83,24 @@ BYTE pio_ctrl_in(int dev) {
 void pio_ctrl_out(BYTE data, int dev) {
   LL(printf("pio%d: ctrl out %02X\n", dev, data));
   if (pio[dev].int_ctrl & PIO_INT_MASK_FOLLOWS) {
-    /* Set data mask */
+    // Set data mask.
     L(printf("pio%d: set mask %02X\n", dev, data));
     pio[dev].mask = data;
     pio[dev].int_ctrl &= ~PIO_INT_MASK_FOLLOWS;
   } else if ((data & 0x01) == 0) {
-    /* Set interrupt vector */
+    // Set interrupt vector.
     L(printf("pio%d: set int vec %02X\n", dev, data));
     pio[dev].int_vec = data;
   } else if ((data & 0x0f) == 0x0f) {
-    /* Set I/O mode */
+    // Set I/O mode.
     L(printf("pio%d: set io mode %02X\n", dev, data >> 6));
     pio[dev].mode = data >> 6;
   } else if ((data & 0x0f) == 0x07) {
-    /* Set interrupt control word */
+    // Set interrupt control word.
     L(printf("pio%d: set int ctrl %02X\n", dev, data));
     pio[dev].int_ctrl = data & 0xf0;
   } else if ((data & 0x0f) == 0x03) {
-    /* Set interrupt enable */
+    // Set interrupt enable.
     L(printf("pio%d: set int enable %02X\n", dev, data & 0x80));
     pio[dev].int_ctrl = (pio[dev].int_ctrl & 0x7f) | (data & 0x80);
   } else {
@@ -108,7 +108,7 @@ void pio_ctrl_out(BYTE data, int dev) {
   }
 }
 
-int pio_poll(void) {
+int pio_poll() {
   char c;
   int ch = rcterm_keypressed();
   if (ch != (ch & 0xFF)) return 0;
@@ -117,13 +117,12 @@ int pio_poll(void) {
   return 1;
 }
 
-void init_pio(void) {
+void init_pio() {
   int i;
   
   for (i = 0; i < NUM_PIO_PORTS; ++i) {
     memset(&pio[i], 0, sizeof(struct parallel_port));
   }
-
   register_port(0x10, pio_data_in, pio_data_out, 0);
   register_port(0x11, pio_data_in, pio_data_out, 1);
   register_port(0x12, pio_ctrl_in, pio_ctrl_out, 0);

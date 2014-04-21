@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * Intel 8275 - Programmable CRT Controller
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// Intel 8275 - Programmable CRT Controller
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -28,23 +28,23 @@
 #define CRT_CMD_INTR_DISABLE    6
 #define CRT_CMD_PRESET          7
 
-#define CRT_STAT_FO 0x01 /* FIFO Overrun */
-#define CRT_STAT_DU 0x02 /* DMA Underrun */
-#define CRT_STAT_VE 0x04 /* Video Enabled */
-#define CRT_STAT_IC 0x08 /* Improper Command */
-#define CRT_STAT_LP 0x10 /* Light Pen */
-#define CRT_STAT_IR 0x20 /* Interrupt Request */
-#define CRT_STAT_IE 0x40 /* Interrupt Enabled */
+#define CRT_STAT_FO 0x01 // FIFO Overrun
+#define CRT_STAT_DU 0x02 // DMA Underrun
+#define CRT_STAT_VE 0x04 // Video Enabled
+#define CRT_STAT_IC 0x08 // Improper Command
+#define CRT_STAT_LP 0x10 // Light Pen
+#define CRT_STAT_IR 0x20 // Interrupt Request
+#define CRT_STAT_IE 0x40 // Interrupt Enabled
 
 static int crt_parameter_count[] = {
-  5,  /*  0 */
-  1,  /*  1 */
-  1,  /*  2 */
-  3,  /*  3 */
-  3,  /*  4 */
-  1,  /*  5 */
-  1,  /*  6 */
-  1,  /*  7 */
+  5,  // 0
+  1,  // 1
+  1,  // 2
+  3,  // 3
+  3,  // 4
+  1,  // 5
+  1,  // 6
+  1,  // 7
 };
 
 struct crt_controller {
@@ -115,7 +115,7 @@ void crt_command(int cmd) {
   }
 
   if (intr && (crt.status & CRT_STAT_IE)) {
-    // In RC702, the CRT INT pin is connected to the CLK/TRG2 on the CTC
+    // In RC702, the CRT INT pin is connected to the CLK/TRG2 on the CTC.
     ctc_trigger(CTC_CHANNEL_CRT);
   }
 }
@@ -154,7 +154,7 @@ void crt_command_out(BYTE data, int dev) {
   }
 }
 
-int crt_poll(void) {
+int crt_poll() {
   WORD cnt2, cnt3;
   WORD adr2, adr3;
   int update = 0;
@@ -205,7 +205,7 @@ int crt_poll(void) {
   return update;
 }
 
-void dump_screen(void) {
+void dump_screen() {
   int x, y, lastx;
   BYTE *p, *start, *end;
 
@@ -227,7 +227,7 @@ void dump_screen(void) {
   }
 }
 
-void init_crt(void) {
+void init_crt() {
   register_port(0x00, crt_param_in, crt_param_out, 0);
   register_port(0x01, crt_status_in, crt_command_out, 0);
 }

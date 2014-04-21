@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * Curses-based RC700 terminal
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// Curses-based RC700 terminal
+//
 
 #define _XOPEN_SOURCE_EXTENDED
 // apt-get install libncursesw5-dev
@@ -21,10 +21,7 @@
 #define NOCHAR   0x2423
 #define MAXUTF8  5
 
-/*
- * Unicode equvalents for RC700 character set.
- */
-
+// Unicode equvalents for RC700 character set.
 int rcchars[256] = {
   /* 00 */ 0x00FC, 0x00E0, 0x00D1, 0x00A3, 0x2613, 0x0040, 0x00C4, 0x00CB, 
   /* 08 */ 0x00C7, 0x00F5, 0x00C9, 0x005B, 0x005C, 0x005D, 0x00F6, 0x007E,
@@ -59,17 +56,6 @@ int rcchars[256] = {
   /* F0 */ 0x0020, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR,
   /* F8 */ NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR,
 };
-
-/*
- * Character attributes:
- *   0x80 Change character mode
- *   0x01 Highlight
- *   0x02 Blink
- *   0x04 Semigraphic character set
- *   0x10 Inverse
- *   0x20 Underline
- *   Character matrix 7x11 bits
- */
 
 static WINDOW *term;
 static int xofs = 0;
@@ -107,7 +93,7 @@ static int toutf8(unsigned long ch, char *dest) {
   return 0;
 }
 
-void rcterm_init(void) {
+void rcterm_init() {
   L(printf("rcterm: init\n"));
   setlocale(LC_ALL,"");
   setenv("ESCDELAY","100");
@@ -123,7 +109,7 @@ void rcterm_init(void) {
   init_pair(1, COLOR_YELLOW, COLOR_BLACK);
 }
 
-void rcterm_exit(void) {
+void rcterm_exit() {
   L(printf("rcterm: exit\n"));
   delwin(term);
   endwin();
@@ -183,7 +169,7 @@ int rcterm_gotoxy(int col, int row) {
   return 0;
 }
 
-int rcterm_keypressed(void) {
+int rcterm_keypressed() {
   int ch = getch();
   if (ch == ERR) return -1;
   switch (ch) {

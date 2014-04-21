@@ -1,28 +1,9 @@
-/*
- * Z80SIM  -  a Z80-CPU simulator
- *
- * Copyright (C) 1987-2006 by Udo Munk
- *
- * This modul contains the user interface, a full qualified ICE,
- * for the Z80-CPU simulation.
- *
- * History:
- * 28-SEP-87 Development on TARGON/35 with AT&T Unix System V.3
- * 11-JAN-89 Release 1.1
- * 08-FEB-89 Release 1.2
- * 13-MAR-89 Release 1.3
- * 09-FEB-90 Release 1.4 Ported to TARGON/31 M10/30
- * 20-DEC-90 Release 1.5 Ported to COHERENT 3.0
- * 10-JUN-92 Release 1.6 long casting problem solved with COHERENT 3.2
- *       and some optimization
- * 25-JUN-92 Release 1.7 comments in english and ported to COHERENT 4.0
- * 02-OCT-06 Release 1.8 modified to compile on modern POSIX OS's
- */
-
-/*
- *  This modul is an ICE type user interface to debug Z80 programs
- *  on a host system.
- */
+//
+// Z80SIM  -  a Z80-CPU simulator
+//
+// Copyright (C) 1987-2006 by Udo Munk
+//
+// ICE-type user interface for debugging Z80 programs on a host system.
 
 #ifndef WIN32
 #include <unistd.h>
@@ -36,140 +17,152 @@
 #include "sim.h"
 #include "simglb.h"
 
-extern void disass(unsigned char **, int);
-extern void dump_screen();
-extern void pio_receive(int dev, char *data, int size);
+void disass(unsigned char **, int);
+void dump_screen();
 
-static void do_step(void);
-static void do_trace(char *);
-static void do_go(char *);
-static int handel_break(void);
-static void do_dump(char *);
-static void do_list(char *);
-static void do_modify(char *);
-static void do_fill(char *);
-static void do_move(char *);
-static void do_port(char *);
-static void do_reg(char *);
-static void print_head(void);
-static void print_reg(void);
-static void do_break(char *);
-static void do_hist(char *);
-static void do_count(char *);
-static void do_clock(void);
-static void timeout(int);
-static void do_show(void);
-static int do_getfile(char *);
-static int load_mos(int, char *);
-static void do_unix(char *);
-static void do_help(void);
-static void cpu_err_msg(void);
-static int exatoi(char *);
+BYTE *wrk_ram;     // Workpointer into memory for dumps etc.
 
-/*
- *  The function "mon()" is the dialog user interface, called
- *  from the simulation just after program start.
- */
-void mon(void) {
-  register int eoj = 1;
-  static char cmd[LENCMD];
-  char *p;
-
-  if (x_flag) {
-    if (do_getfile(xfn) == 0)
-      do_go("");
+// Parse hexadecimal number.
+int exatoi(char *str) {
+  int num = 0;
+  while (isxdigit(*str)) {
+    num *= 16;
+    if (*str <= '9') {
+      num += *str - '0';
+    } else {
+      num += toupper(*str) - '7';
+    }
+    str++;
   }
-  while (eoj) {
-    next:
-    printf(">>> ");
-    fflush(stdout);
-    if (fgets(cmd, LENCMD, stdin) == NULL) {
-      putchar('\n');
-      goto next;
-    }
-    for (p = cmd; *p; p++) if (*p == '\n' || *p == '\r') *p = 0;
-    switch (*cmd) {
-    case '\0':
-    case '\n':
-      do_step();
+  return num;
+}
+
+// Handling of software breakpoints (HALT opcode):
+//
+// Output: 
+//   0 breakpoint or other HALT opcode reached (stop)
+//   1 breakpoint reached, passcounter not reached (continue)
+static int handle_break() {
+#ifdef SBSIZE
+  int i;
+  int break_address;
+
+  // Search for breakpoint.
+  for (i = 0; i < SBSIZE; i++) { 
+    if (soft[i].sb_adr == PC - ram - 1) goto was_softbreak;
+  }
+  return 0;
+
+was_softbreak:
+#ifdef HISIZE
+  // Update history.
+  h_next--;     
+  if (h_next < 0) h_next = 0;
+#endif
+
+  // Store address of breakpoint.
+  break_address = PC - ram - 1;
+
+  // HALT was a breakpoint.
+  cpu_error = NONE;
+
+  // Substitute HALT opcode by original opcode and execute it.
+  PC--;
+  *PC = soft[i].sb_oldopc;
+  cpu_state = SINGLE_STEP;
+  cpu();
+
+  // Restore HALT opcode again.
+  *(ram + soft[i].sb_adr) = 0x76;
+
+  // Increment passcounter.
+  soft[i].sb_passcount++;
+
+  if (soft[i].sb_passcount != soft[i].sb_pass) {
+    // Pass not reached, continue.
+    return 1;
+  }
+
+  printf("Software breakpoint %d reached at %04x\n", i, break_address);
+  soft[i].sb_passcount = 0;
+#endif
+
+  // Pass reached, stop.
+  return 0;
+}
+
+// Output header for the CPU registers.
+static void print_head() {
+  printf("\nPC   A  SZHPNC I  IFF BC   DE   HL   A'F' B'C' D'E' H'L' IX   IY   SP\n");
+}
+
+// Output all CPU registers.
+static void print_reg() {
+  printf("%04x %02x ", (unsigned int)(PC - ram), A);
+  printf("%c", F & S_FLAG ? '1' : '0');
+  printf("%c", F & Z_FLAG ? '1' : '0');
+  printf("%c", F & H_FLAG ? '1' : '0');
+  printf("%c", F & P_FLAG ? '1' : '0');
+  printf("%c", F & N_FLAG ? '1' : '0');
+  printf("%c", F & C_FLAG ? '1' : '0');
+  printf(" %02x ", I);
+  printf("%c", IFF & 1 ? '1' : '0');
+  printf("%c", IFF & 2 ? '1' : '0');
+  printf("  %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %04x %04x %04x\n",
+         B, C, D, E, H, L, A_, F_, B_, C_, D_, E_, H_, L_, IX, IY,
+         (unsigned int)(STACK - ram));
+}
+
+// Error handler after CPU is stopped.
+static void cpu_err_msg() {
+  switch (cpu_error) {
+    case NONE:
       break;
-    case 't':
-      do_trace(cmd + 1);
+
+    case OPHALT:
+      printf("HALT Op-Code reached at %04x\n",
+             (unsigned int)(PC - ram - 1));
       break;
-    case 'g':
-      do_go(cmd + 1);
+
+    case IOTRAP:
+      printf("I/O Trap at %04x\n", (unsigned int)(PC - ram));
       break;
-    case 'd':
-      do_dump(cmd + 1);
+
+    case OPTRAP1:
+      printf("Op-code trap at %04x %02x\n",
+             (unsigned int)(PC - 1 - ram), *(PC-1));
       break;
-    case 'l':
-      do_list(cmd + 1);
+
+    case OPTRAP2:
+      printf("Op-code trap at %04x %02x %02x\n",
+             (unsigned int)(PC - 2 - ram),
+             *(PC-2), *(PC-1));
       break;
-    case 'm':
-      do_modify(cmd + 1);
+
+    case OPTRAP4:
+      printf("Op-code trap at %04x %02x %02x %02x %02x\n",
+             (unsigned int)(PC - 4 - ram), *(PC-4), *(PC-3),
+             *(PC-2), *(PC-1));
       break;
-    case 'f':
-      do_fill(cmd + 1);
+
+    case USERINT:
+      puts("User Interrupt");
       break;
-    case 'v':
-      do_move(cmd + 1);
-      break;
-    case 'x':
-      do_reg(cmd + 1);
-      break;
-    case 'p':
-      do_port(cmd + 1);
-      break;
-    case 'b':
-      do_break(cmd + 1);
-      break;
-    case 'h':
-      do_hist(cmd + 1);
-      break;
-    case 'z':
-      do_count(cmd + 1);
-      break;
-    case 'c':
-      do_clock();
-      break;
-    case 's':
-      do_show();
-      break;
-    case 'n':
-      dump_screen();
-      break;
-    case '?':
-      do_help();
-      break;
-    case 'r':
-      do_getfile(cmd + 1);
-      break;
-    case 'q':
-      eoj = 0;
-      break;
-    case '>':
-      printf("kbd: insert %s\n", cmd + 1);
-      pio_receive(0, cmd + 1, strlen(cmd + 1));
-      pio_receive(0, "\r", 1);
-      break;
+
     default:
-      puts("what??");
+      printf("Unknown error %d\n", cpu_error);
       break;
-    }
   }
 }
 
-/*
- *  Execute a single step
- */
-static void do_step(void) {
+// Execute a single step.
+static void do_step() {
   BYTE *p;
 
   cpu_state = SINGLE_STEP;
   cpu_error = NONE;
   cpu();
-  if (cpu_error == OPHALT)
-    handel_break();
+  if (cpu_error == OPHALT) handle_break();
   cpu_err_msg();
   print_head();
   print_reg();
@@ -177,18 +170,17 @@ static void do_step(void) {
   disass(&p, p - ram);
 }
 
-/*
- *  Execute several steps with trace output
- */
+// Execute several steps with trace output.
 static void do_trace(char *s) {
-  register int count, i;
+  int count, i;
 
-  while (isspace(*s))
-    s++;
-  if (*s == '\0')
+  while (isspace(*s)) s++;
+  if (*s == '\0') {
     count = 20;
-  else
+  } else {
     count = atoi(s);
+  }
+
   cpu_state = SINGLE_STEP;
   cpu_error = NONE;
   print_head();
@@ -198,171 +190,110 @@ static void do_trace(char *s) {
     print_reg();
     if (cpu_error) {
       if (cpu_error == OPHALT) {
-        if (!handel_break()) {
-          break;
-        }
-      } else
+        if (!handle_break()) break;
+      } else {
         break;
+      }
     }
   }
   cpu_err_msg();
 }
 
-/*
- *  Run the CPU emulation endless
- */
+// Start the CPU emulation.
 static void do_go(char *s) {
-  while (isspace(*s))
-    s++;
-  if (isxdigit(*s))
-    PC = ram + exatoi(s);
-  cont:
+  while (isspace(*s)) s++;
+  if (isxdigit(*s)) PC = ram + exatoi(s);
+cont:
   cpu_state = CONTIN_RUN;
   cpu_error = NONE;
   cpu();
-  if (cpu_error == OPHALT)
-    if (handel_break())
-      if (!cpu_error)
-        goto cont;
+  if (cpu_error == OPHALT) {
+    if (handle_break()) {
+      if (!cpu_error) goto cont;
+    }
+  }
   cpu_err_msg();
   print_head();
   print_reg();
 }
 
-/*
- *  Handling of software breakpoints (HALT opcode):
- *
- *  Output: 0 breakpoint or other HALT opcode reached (stop)
- *    1 breakpoint reached, passcounter not reached (continue)
- */
-static int handel_break(void) {
-#ifdef SBSIZE
-  register int i;
-  int break_address;
-
-  for (i = 0; i < SBSIZE; i++)  /* search for breakpoint */
-    if (soft[i].sb_adr == PC - ram - 1)
-      goto was_softbreak;
-  return(0);
-  was_softbreak:
-#ifdef HISIZE
-  h_next--;     /* correct history */
-  if (h_next < 0)
-    h_next = 0;
-#endif
-  break_address = PC - ram - 1; /* store adr of breakpoint */
-  cpu_error = NONE;   /* HALT was a breakpoint */
-  PC--;       /* substitute HALT opcode by */
-  *PC = soft[i].sb_oldopc;  /* original opcode */
-  cpu_state = SINGLE_STEP;  /* and execute it */
-  cpu();
-  *(ram + soft[i].sb_adr) = 0x76; /* restore HALT opcode again */
-  soft[i].sb_passcount++;   /* increment passcounter */
-  if (soft[i].sb_passcount != soft[i].sb_pass)
-    return(1);    /* pass not reached, continue */
-  printf("Software breakpoint %d reached at %04x\n", i, break_address);
-  soft[i].sb_passcount = 0; /* reset passcounter */
-#endif
-  return(0);      /* pass reached, stop */
-}
-
-/*
- *  Memory dump
- */
+// Memory dump.
 static void do_dump(char *s) {
-  register int i, j;
+  int i, j;
   BYTE c;
 
-  while (isspace(*s))
-    s++;
-  if (isxdigit(*s))
+  while (isspace(*s)) s++;
+  if (isxdigit(*s)) {
     wrk_ram = ram + exatoi(s) - exatoi(s) % 16;
+  }
   printf("Adr    ");
-  for (i = 0; i < 16; i++)
-    printf("%02x ", i);
+  for (i = 0; i < 16; i++) printf("%02x ", i);
   puts(" ASCII");
   for (i = 0; i < 16; i++) {
     printf("%04x - ", (unsigned int)(wrk_ram - ram));
     for (j = 0; j < 16; j++) {
       printf("%02x ", *wrk_ram);
       wrk_ram++;
-      if (wrk_ram > ram + 65535)
-        wrk_ram = ram;
+      if (wrk_ram > ram + 65535) wrk_ram = ram;
     }
     putchar('\t');
-    for (j = -16; j < 0; j++)
-      printf("%c",((c = *(wrk_ram+j))>=' ' && c<=0x7f) ? c : '.');
+    for (j = -16; j < 0; j++) {
+      printf("%c",((c = *(wrk_ram+j)) >= ' ' && c <= 0x7f) ? c : '.');
+    }
     putchar('\n');
   }
 }
 
-/*
- *  Disassemble
- */
+// Disassembler.
 static void do_list(char *s) {
-  register int i;
+  int i;
 
-  while (isspace(*s))
-    s++;
-  if (isxdigit(*s))
-    wrk_ram = ram + exatoi(s);
+  while (isspace(*s)) s++;
+  if (isxdigit(*s)) wrk_ram = ram + exatoi(s);
+
   for (i = 0; i < 10; i++) {
     printf("%04x - ", (unsigned int)(wrk_ram - ram));
     disass(&wrk_ram, wrk_ram - ram);
-    if (wrk_ram > ram + 65535)
-      wrk_ram = ram;
+    if (wrk_ram > ram + 65535) wrk_ram = ram;
   }
 }
 
-/*
- *  Memory modify
- */
+// Memory modify.
 static void do_modify(char *s) {
-  static char nv[LENCMD];
+  char nv[CMDLEN];
 
-  while (isspace(*s))
-    s++;
-  if (isxdigit(*s))
-    wrk_ram = ram + exatoi(s);
+  while (isspace(*s)) s++;
+  if (isxdigit(*s)) wrk_ram = ram + exatoi(s);
   for (;;) {
-    printf("%04x = %02x : ", (unsigned int)(wrk_ram - ram),
-           *wrk_ram);
+    printf("%04x = %02x : ", (unsigned int)(wrk_ram - ram), *wrk_ram);
     fgets(nv, sizeof(nv), stdin);
     if (nv[0] == '\n') {
       wrk_ram++;
-      if (wrk_ram > ram + 65535)
-        wrk_ram = ram;
+      if (wrk_ram > ram + 65535) wrk_ram = ram;
       continue;
     }
-    if (!isxdigit(nv[0]))
-      break;
+    if (!isxdigit(nv[0])) break;
     *wrk_ram++ = exatoi(nv);
-    if (wrk_ram > ram + 65535)
-      wrk_ram = ram;
+    if (wrk_ram > ram + 65535) wrk_ram = ram;
   }
 }
 
-/*
- *  Memory fill
- */
+// Memory fill.
 static void do_fill(char *s) {
-  register BYTE *p;
-  register int i;
-  register BYTE val;
+  BYTE *p;
+  int i;
+  BYTE val;
 
-  while (isspace(*s))
-    s++;
+  while (isspace(*s)) s++;
   p = ram + exatoi(s);
-  while (*s != ',' && *s != '\0')
-    s++;
+  while (*s != ',' && *s != '\0') s++;
   if (*s) {
     i = exatoi(++s);
   } else {
     puts("count missing");
     return;
   }
-  while (*s != ',' && *s != '\0')
-    s++;
+  while (*s != ',' && *s != '\0') s++;
   if (*s) {
     val = exatoi(++s);
   } else {
@@ -371,32 +302,25 @@ static void do_fill(char *s) {
   }
   while (i--) {
     *p++ = val;
-    if (p > ram + 65535)
-      p = ram;
+    if (p > ram + 65535) p = ram;
   }
 }
 
-/*
- *  Memory move
- */
+// Memory move.
 static void do_move(char *s) {
-  register BYTE *p1, *p2;
-  register int count;
-
+  BYTE *p1, *p2;
+  int count;
   
-  while (isspace(*s))
-    s++;
+  while (isspace(*s)) s++;
   p1 = ram + exatoi(s);
-  while (*s != ',' && *s != '\0')
-    s++;
+  while (*s != ',' && *s != '\0') s++;
   if (*s) {
     p2 = ram + exatoi(++s);
   } else {
     puts("to missing");
     return;
   }
-  while (*s != ',' && *s != '\0')
-    s++;
+  while (*s != ',' && *s != '\0') s++;
   if (*s) {
     count = exatoi(++s);
   } else {
@@ -405,38 +329,29 @@ static void do_move(char *s) {
   }
   while (count--) {
     *p2++ = *p1++;
-    if (p1 > ram + 65535)
-      p1 = ram;
-    if (p2 > ram + 65535)
-      p2 = ram;
+    if (p1 > ram + 65535) p1 = ram;
+    if (p2 > ram + 65535) p2 = ram;
   }
 }
 
-/*
- *  Port modify
- */
+// Port modify.
 static void do_port(char *s) {
-  register BYTE port;
-  static char nv[LENCMD];
+  BYTE port;
+  char nv[CMDLEN];
   extern BYTE io_out(), io_in();
 
-  while (isspace(*s))
-    s++;
+  while (isspace(*s)) s++;
   port = exatoi(s);
   printf("%02x = %02x : ", port, io_in(port));
   fgets(nv, sizeof(nv), stdin);
-  if (isxdigit(*nv))
-    io_out(port, (BYTE) exatoi(nv));
+  if (isxdigit(*nv)) io_out(port, (BYTE) exatoi(nv));
 }
 
-/*
- *  Register modify
- */
+// Register modify.
 static void do_reg(char *s) {
-  static char nv[LENCMD];
+  char nv[CMDLEN];
 
-  while (isspace(*s))
-    s++;
+  while (isspace(*s)) s++;
   if (*s == '\0') {
     print_head();
     print_reg();
@@ -579,61 +494,39 @@ static void do_reg(char *s) {
       printf("L = %02x : ", L);
       fgets(nv, sizeof(nv), stdin);
       L = exatoi(nv) & 0xff;
-    } else
+    } else {
       printf("can't change register %s\n", nv);
+    }
+
     print_head();
     print_reg();
   }
 }
 
-/*
- *  Output header for the CPU registers
- */
-static void print_head(void) {
-  printf("\nPC   A  SZHPNC I  IFF BC   DE   HL   A'F' B'C' D'E' H'L' IX   IY   SP\n");
-}
-
-/*
- *  Output all CPU registers
- */
-static void print_reg(void) {
-  printf("%04x %02x ", (unsigned int)(PC - ram), A);
-  printf("%c", F & S_FLAG ? '1' : '0');
-  printf("%c", F & Z_FLAG ? '1' : '0');
-  printf("%c", F & H_FLAG ? '1' : '0');
-  printf("%c", F & P_FLAG ? '1' : '0');
-  printf("%c", F & N_FLAG ? '1' : '0');
-  printf("%c", F & C_FLAG ? '1' : '0');
-  printf(" %02x ", I);
-  printf("%c", IFF & 1 ? '1' : '0');
-  printf("%c", IFF & 2 ? '1' : '0');
-  printf("  %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %04x %04x %04x\n",
-     B, C, D, E, H, L, A_, F_, B_, C_, D_, E_, H_, L_, IX, IY,
-     (unsigned int)(STACK - ram));
-}
-
-/*
- *  Software breakpoints
- */
+// Software breakpoints.
 static void do_break(char *s) {
 #ifndef SBSIZE
   puts("Sorry, no breakpoints available");
   puts("Please recompile with SBSIZE defined in sim.h");
 #else
-  register int i;
+  int i;
 
   if (!break_flag) {
     puts("Can't use softbreaks with -h option.");
     return;
   }
+
   if (*s == '\n' || *s == '\0') {
     puts("No Addr Pass  Counter");
-    for (i = 0; i < SBSIZE; i++)
-      if (soft[i].sb_pass)
+    for (i = 0; i < SBSIZE; i++) {
+      if (soft[i].sb_pass) {
         printf("%02d %04x %05d %05d\n", i,
         soft[i].sb_adr,soft[i].sb_pass,soft[i].sb_passcount);
+      }
+    }
     return;
   }
+
   if (isxdigit(*s)) {
     i = atoi(s++);
     if (i >= SBSIZE) {
@@ -642,34 +535,33 @@ static void do_break(char *s) {
     }
   } else {
     i = sb_next++;
-    if (sb_next == SBSIZE)
-      sb_next = 0;
+    if (sb_next == SBSIZE) sb_next = 0;
   }
-  while (isspace(*s))
-    s++;
+
+  while (isspace(*s)) s++;
   if (*s == 'c') {
     *(ram + soft[i].sb_adr) = soft[i].sb_oldopc;
     memset((char *) &soft[i], 0, sizeof(struct softbreak));
     return;
   }
-  if (soft[i].sb_pass)
+
+  if (soft[i].sb_pass) {
     *(ram + soft[i].sb_adr) = soft[i].sb_oldopc;
+  }
   soft[i].sb_adr = exatoi(s);
   soft[i].sb_oldopc = *(ram + soft[i].sb_adr);
   *(ram + soft[i].sb_adr) = 0x76;
-  while (!iscntrl(*s) && !ispunct(*s))
-    s++;
-  if (*s != ',')
+  while (!iscntrl(*s) && !ispunct(*s)) s++;
+  if (*s != ',') {
     soft[i].sb_pass = 1;
-  else
+  } else {
     soft[i].sb_pass = exatoi(++s);
+  }
   soft[i].sb_passcount = 0;
 #endif
 }
 
-/*
- *  History
- */
+// History.
 static void do_hist(char *s) {
 #ifndef HISIZE
   puts("Sorry, no history available");
@@ -677,66 +569,58 @@ static void do_hist(char *s) {
 #else
   int i,  l, b, e, c, sa;
 
-  while (isspace(*s))
-    s++;
+  while (isspace(*s)) s++;
   switch (*s) {
-  case 'c':
-    memset((char *) his, 0, sizeof(struct history) * HISIZE);
-    h_next = 0;
-    h_flag = 0;
-    break;
-  default:
-    if ((h_next == 0) && (h_flag == 0)) {
-      puts("History memory is empty");
+    case 'c':
+      memset((char *) his, 0, sizeof(struct history) * HISIZE);
+      h_next = 0;
+      h_flag = 0;
       break;
-    }
-    e = h_next;
-    b = (h_flag) ? h_next + 1 : 0;
-    l = 0;
-    while (isspace(*s))
-      s++;
-    if (*s)
-      sa = exatoi(s);
-    else
-      sa = -1;
-    for (i = b; i != e; i++) {
-      if (i == HISIZE)
-        i = 0;
-      if (sa != -1) {
-        if (his[i].h_adr < sa)
-          continue;
-        else
+
+    default:
+      if ((h_next == 0) && (h_flag == 0)) {
+        puts("History memory is empty");
+        break;
+      }
+      e = h_next;
+      b = (h_flag) ? h_next + 1 : 0;
+      l = 0;
+      while (isspace(*s)) s++;
+      if (*s) {
+        sa = exatoi(s);
+      } else {
+        sa = -1;
+      }
+      for (i = b; i != e; i++) {
+        if (i == HISIZE) i = 0;
+        if (sa != -1) {
+          if (his[i].h_adr < sa) continue;
           sa = -1;
+        }
+        printf("%04x AF=%04x BC=%04x DE=%04x HL=%04x IX=%04x IY=%04x SP=%04x\n",
+               his[i].h_adr, his[i].h_af, his[i].h_bc,
+               his[i].h_de, his[i].h_hl, his[i].h_ix,
+               his[i].h_iy, his[i].h_sp);
+        l++;
+        if (l == 20) {
+          l = 0;
+          printf("q = quit, else continue: ");
+          c = getchar();
+          putchar('\n');
+          if (toupper(c) == 'Q') break;
+        }
       }
-      printf("%04x AF=%04x BC=%04x DE=%04x HL=%04x IX=%04x IY=%04x SP=%04x\n",
-             his[i].h_adr, his[i].h_af, his[i].h_bc,
-             his[i].h_de, his[i].h_hl, his[i].h_ix,
-             his[i].h_iy, his[i].h_sp);
-      l++;
-      if (l == 20) {
-        l = 0;
-        printf("q = quit, else continue: ");
-        c = getchar();
-        putchar('\n');
-        if (toupper(c) == 'Q')
-          break;
-      }
-    }
-    break;
   }
 #endif
 }
 
-/*
- *  Runtime measurement by counting the executed T states
- */
+// Runtime measurement by counting the executed T states.
 static void do_count(char *s) {
 #ifndef WANT_TIM
   puts("Sorry, no t-state count available");
   puts("Please recompile with WANT_TIM defined in sim.h");
 #else
-  while (isspace(*s))
-    s++;
+  while (isspace(*s)) s++;
   if (*s == '\0') {
     puts("start  stop  status  T-states");
     printf("%04x   %04x    %s   %lu\n",
@@ -745,68 +629,77 @@ static void do_count(char *s) {
            t_flag ? "on ": "off", t_states);
   } else {
     t_start = ram + exatoi(s);
-    while (*s != ',' && *s != '\0')
-      s++;
-    if (*s)
-      t_end = ram + exatoi(++s);
+    while (*s != ',' && *s != '\0') s++;
+    if (*s) t_end = ram + exatoi(++s);
     t_states = 0L;
     t_flag = 0;
   }
 #endif
 }
 
-/*
- *  Calculate the clock frequency of the emulated CPU:
- *  into memory locations 0000H to 0002H the following
- *  code will be stored:
- *    LOOP: JP LOOP
- *  It uses 10 T states for each execution. A 3 secound
- *  timer is started and then the CPU. For every opcode
- *  fetch the R register is incremented by one and after
- *  the timer is down and stopps the emulation, the clock
- *  speed of the CPU is calculated with:
- *    f = R / 300000
- */
-static void do_clock(void) {
-#ifndef WIN32
-  static BYTE save[3];
-
-  save[0] = *(ram + 0x0000);  /* save memory locations */
-  save[1] = *(ram + 0x0001);  /* 0000H - 0002H */
-  save[2] = *(ram + 0x0002);
-  *(ram + 0x0000) = 0xc3;   /* store opcode JP 0000H at address */
-  *(ram + 0x0001) = 0x00;   /* 0000H */
-  *(ram + 0x0002) = 0x00;
-  PC = ram + 0x0000;    /* set PC to this code */
-  R = 0L;       /* clear refresh register */
-  cpu_state = CONTIN_RUN;   /* initialize CPU */
-  cpu_error = NONE;
-  signal(SIGALRM, timeout); /* initialize timer interrupt handler */
-  alarm(3);     /* start 3 secound timer */
-  cpu();        /* start CPU */
-  *(ram + 0x0000) = save[0];  /* restore memory locations */
-  *(ram + 0x0001) = save[1];  /* 0000H - 0002H */
-  *(ram + 0x0002) = save[2];
-  if (cpu_error == NONE)
-    printf("clock frequency = %5.2f Mhz\n", ((float) R) / 300000.0);
-  else
-    puts("Interrupted by user");
-#endif
-}
-
-/*
- *  This function is the signal handler for the timer interrupt.
- *  The CPU emulation is stopped here.
- */
+// Signal handler for the timer interrupt.
 static void timeout(int sig) {
   cpu_state = STOPPED;
 }
 
-/*
- *  Output informations about compiling options
- */
-static void do_show(void) {
-  register int i;
+// Calculate the clock frequency of the emulated CPU:
+// into memory locations 0000H to 0002H the following
+// code will be stored:
+//   LOOP: JP LOOP
+// It uses 10 T states for each execution. A 3 secound
+// timer is started and then the CPU. For every opcode
+// fetch the R register is incremented by one and after
+// the timer is down and stopps the emulation, the clock
+// speed of the CPU is calculated with:
+// f = R / 300000
+static void do_clock() {
+#ifndef WIN32
+  BYTE save[3];
+
+  // Save memory locations 0000H - 0002H.
+  save[0] = *(ram + 0x0000);  
+  save[1] = *(ram + 0x0001);
+  save[2] = *(ram + 0x0002);
+
+  // Store opcode JP 0000H at address 0000H.
+  *(ram + 0x0000) = 0xc3;
+  *(ram + 0x0001) = 0x00;
+  *(ram + 0x0002) = 0x00;
+
+  // set PC to this code.
+  PC = ram + 0x0000;
+
+  // Clear refresh register.
+  R = 0L;
+
+  // Initialize CPU.
+  cpu_state = CONTIN_RUN;
+  cpu_error = NONE;
+
+  // Initialize timer interrupt handler.
+  signal(SIGALRM, timeout);
+  alarm(3);
+
+  // Start CPU.
+  cpu();        
+
+  // Restore memory locations 0000H - 0002H.
+  *(ram + 0x0000) = save[0];  
+  *(ram + 0x0001) = save[1];
+  *(ram + 0x0002) = save[2];
+
+  // Compute clock frequency.
+  if (cpu_error == NONE) {
+    printf("clock frequency = %5.2f Mhz\n", ((float) R) / 300000.0);
+  } else {
+    puts("Interrupted by user");
+  }
+#endif
+}
+
+// Output informations about compiling options.
+static void do_show() {
+  int i;
 
   printf("Release: %s\n", RELEASE);
 #ifdef HISIZE
@@ -839,78 +732,24 @@ static void do_show(void) {
   i = 0;
 #endif
   printf("T-State counting %spossible\n", i ? "" : "im");
-#ifdef CNTL_C
-  i = 1;
-#else
-  i = 0;
-#endif
-  printf("CPU simulation %sstopped on cntl-c\n", i ? "" : "not ");
-#ifdef CNTL_BS
-  i = 1;
-#else
-  i = 0;
-#endif
-  printf("CPU simulation %sstopped on cntl-\\\n", i ? "" : "not ");
 }
 
-/*
- *  Read a file into the memory of the emulated CPU.
- *  The following file formats are supported:
- *
- *    binary images with Mostek header
- */
-static int do_getfile(char *s) {
-  char fn[LENCMD];
-  BYTE fileb[5];
-  register char *pfn = fn;
-  int fd;
-
-  while (isspace(*s))
-    s++;
-  while (*s != ',' && *s != '\n' && *s != '\0')
-    *pfn++ = *s++;
-  *pfn = '\0';
-  if (strlen(fn) == 0) {
-    puts("no input file given");
-    return(1);
-  }
-  if ((fd = open(fn, O_RDONLY)) == -1) {
-    printf("can't open file %s\n", fn);
-    return(1);
-  }
-  if (*s == ',')
-    wrk_ram = ram + exatoi(++s);
-  else
-    wrk_ram = NULL;
-  read(fd, (char *) fileb, 5); /* read first 5 bytes of file */
-  if (*fileb == (BYTE) 0xff) {  /* Mostek header ? */
-    lseek(fd, 0l, 0);
-    return (load_mos(fd, fn));
-  }
-  else {
-    printf("unkown format, can't load file %s\n", fn);
-    close(fd);
-    return(1);
-  }
-}
-
-/*
- *  Loader for binary images with Mostek header.
- *  Format of the first 3 bytes:
- *
- *  0xff ll lh
- *
- *  ll = load address low
- *  lh = load address high
- */
+// Loader for binary images with Mostek header.
+// Format of the first 3 bytes: 0xff ll lh
+// ll = load address low
+// lh = load address high
 static int load_mos(int fd, char *fn) {
   BYTE fileb[3];
   unsigned count, readed;
   int rc = 0;
 
-  read(fd, (char *) fileb, 3);  /* read load address */
-  if (wrk_ram == NULL)    /* and set if not given */
+  // Read load address.
+  read(fd, (char *) fileb, 3);
+  
+  // ...and set if not given.
+  if (wrk_ram == NULL) {
     wrk_ram = ram + (fileb[2] * 256 + fileb[1]);
+  }
   count = ram + 65535 - wrk_ram;
   if ((readed = read(fd, (char *) wrk_ram, count)) == count) {
     puts("Too much to load, stopped at 0xffff");
@@ -922,13 +761,54 @@ static int load_mos(int fd, char *fn) {
   printf("END   : %04x\n", (unsigned int)(wrk_ram - ram + readed - 1));
   printf("LOADED: %04x\n", readed);
   PC = wrk_ram;
-  return(rc);
+  return rc;
+}
+ 
+// Read a file into the memory of the emulated CPU.
+// The following file formats are supported:
+//
+// binary images with Mostek header
+static int do_getfile(char *s) {
+  char fn[CMDLEN];
+  BYTE fileb[5];
+  char *pfn = fn;
+  int fd;
+
+  while (isspace(*s)) s++;
+  while (*s != ',' && *s != '\n' && *s != '\0') *pfn++ = *s++;
+  *pfn = '\0';
+  if (strlen(fn) == 0) {
+    puts("no input file given");
+    return 1;
+  }
+
+  if ((fd = open(fn, O_RDONLY)) == -1) {
+    printf("can't open file %s\n", fn);
+    return 1;
+  }
+
+  if (*s == ',') {
+    wrk_ram = ram + exatoi(++s);
+  } else {
+    wrk_ram = NULL;
+  }
+
+  // Read first 5 bytes of file.
+  read(fd, (char *) fileb, 5);
+
+  if (*fileb == (BYTE) 0xff) {
+    // Mostek header.
+    lseek(fd, 0l, 0);
+    return load_mos(fd, fn);
+  } else {
+    printf("unkown format, can't load file %s\n", fn);
+    close(fd);
+    return 1;
+  }
 }
 
-/*
- *  Output help text
- */
-static void do_help(void) {
+// Output help text.
+static void do_help() {
   puts("r filename[,address]      read object into memory");
   puts("d [address]               dump memory");
   puts("l [address]               list memory");
@@ -954,57 +834,113 @@ static void do_help(void) {
   puts("q                         quit");
 }
 
-/*
- *  Error handler after CPU is stopped
- */
-static void cpu_err_msg(void) {
-  switch (cpu_error) {
-  case NONE:
-    break;
-  case OPHALT:
-    printf("HALT Op-Code reached at %04x\n",
-           (unsigned int)(PC - ram - 1));
-    break;
-  case IOTRAP:
-    printf("I/O Trap at %04x\n", (unsigned int)(PC - ram));
-    break;
-  case OPTRAP1:
-    printf("Op-code trap at %04x %02x\n",
-           (unsigned int)(PC - 1 - ram), *(PC-1));
-    break;
-  case OPTRAP2:
-    printf("Op-code trap at %04x %02x %02x\n",
-           (unsigned int)(PC - 2 - ram),
-           *(PC-2), *(PC-1));
-    break;
-  case OPTRAP4:
-    printf("Op-code trap at %04x %02x %02x %02x %02x\n",
-           (unsigned int)(PC - 4 - ram), *(PC-4), *(PC-3),
-           *(PC-2), *(PC-1));
-    break;
-  case USERINT:
-    puts("User Interrupt");
-    break;
-  default:
-    printf("Unknown error %d\n", cpu_error);
-    break;
-  }
-}
+// Monitor for z80 debugger.
+void mon() {
+  int eoj = 1;
+  char cmd[CMDLEN];
+  char xfn[CMDLEN];
+  char *p;
 
-/*
- *  atoi for hexadecimal numbers
- */
-int exatoi(char *str) {
-  register int num = 0;
-
-  while (isxdigit(*str)) {
-    num *= 16;
-    if (*str <= '9')
-      num += *str - '0';
-    else
-      num += toupper(*str) - '7';
-    str++;
+  wrk_ram = ram;
+  if (x_flag) {
+    if (do_getfile(xfn) == 0) do_go("");
   }
-  return(num);
+
+  while (eoj) {
+next:
+    printf(">>> ");
+    fflush(stdout);
+    if (fgets(cmd, CMDLEN, stdin) == NULL) {
+      putchar('\n');
+      goto next;
+    }
+
+    for (p = cmd; *p; p++) {
+      if (*p == '\n' || *p == '\r') *p = 0;
+    }
+
+    switch (*cmd) {
+      case '\0':
+      case '\n':
+        do_step();
+        break;
+
+      case 't':
+        do_trace(cmd + 1);
+        break;
+
+      case 'g':
+        do_go(cmd + 1);
+        break;
+
+      case 'd':
+        do_dump(cmd + 1);
+        break;
+
+      case 'l':
+        do_list(cmd + 1);
+        break;
+
+      case 'm':
+        do_modify(cmd + 1);
+        break;
+
+      case 'f':
+        do_fill(cmd + 1);
+        break;
+
+      case 'v':
+        do_move(cmd + 1);
+        break;
+
+      case 'x':
+        do_reg(cmd + 1);
+        break;
+
+      case 'p':
+        do_port(cmd + 1);
+        break;
+
+      case 'b':
+        do_break(cmd + 1);
+        break;
+
+      case 'h':
+        do_hist(cmd + 1);
+        break;
+
+      case 'z':
+        do_count(cmd + 1);
+        break;
+
+      case 'c':
+        do_clock();
+        break;
+
+      case 's':
+        do_show();
+        break;
+
+      case 'n':
+        dump_screen();
+        break;
+
+      case '?':
+        do_help();
+        break;
+
+      case 'r':
+        do_getfile(cmd + 1);
+        break;
+
+      case 'q':
+        eoj = 0;
+        break;
+
+      default:
+        puts("what??");
+        break;
+    }
+  }
 }
 

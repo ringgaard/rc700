@@ -1,35 +1,591 @@
-/*
- * Z80 disassembler for Z80-CPU simulator
- *
- * Copyright (C) 1989-2006 by Udo Munk
- *
- * History:
- * 06-DEC-89 Development on TARGON/35 with AT&T Unix System V.3
- * 07-APR-92 forget to implement Op-Codes LD A,R and LD R,A, added
- * 25-JUN-92 comments in english
- * 03-OCT-06 changed to ANSI C for modern POSIX OS's
- */
+//
+// Z80 disassembler for Z80-CPU simulator
+//
+// Copyright (C) 1989-2006 by Udo Munk
+//
 
 #include <stdio.h>
 
-/*
- *  Forward declarations
- */
-static int opout(char *, char **);
-static int nout(char *, unsigned char **);
-static int iout(char *, unsigned char **);
-static int rout(char *, char **);
-static int nnout(char *, unsigned char **);
-static int inout(char *, unsigned char **);
-static int cbop(char *, unsigned char **);
-static int edop(char *, unsigned char **);
-static int ddfd(char *, unsigned char **);
+static int addr;
+static char *unknown = "???";
+static char *reg[] = { "B", "C", "D", "E", "H", "L", "(HL)", "A" };
+static char *regix = "IX";
+static char *regiy = "IY";
 
-/*
- *  Op-code tables
- */
+// Disassemble 1 byte op-codes.
+static int opout(char *s, char **p) {
+  puts(s);
+  return 1;
+}
+
+// Disassemble 2 byte op-codes of type "Op n".
+static int nout(char *s, unsigned char **p) {
+  printf("%s%02x\n", s, *(*p + 1));
+  return 2;
+}
+
+// Disassemble 2 byte op-codes with indirect addressing.
+static int iout(char *s, unsigned char **p) {
+  printf(s, *(*p + 1));
+  putchar('\n');
+  return 2;
+}
+
+// Disassemble 2 byte op-codes with relative addressing.
+static int rout(char *s, char **p) {
+  printf("%s%04x\n", s, addr + *(*p + 1) + 2);
+  return 2;
+}
+
+// Disassemble 3 byte op-codes of type "Op nn".
+static int nnout(char *s, unsigned char **p) {
+  int i;
+
+  i = *(*p + 1) + (*(*p + 2) << 8);
+  printf("%s%04x\n", s, i);
+  return 3;
+}
+
+// Disassemble 3 byte op-codes with indirect addressing.
+static int inout(char *s, unsigned char **p) {
+  int i;
+
+  i = *(*p + 1) + (*(*p + 2) << 8);
+  printf(s, i);
+  putchar('\n');
+  return 3;
+}
+
+// Disassemble multi byte op-codes with prefix 0xcb.
+static int cbop(char *s, unsigned char **p) {
+  int b2;
+
+  b2 = *(*p + 1);
+  if (b2 >= 0x00 && b2 <= 0x07) {
+    printf("RLC\t");
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x08 && b2 <= 0x0f) {
+    printf("RRC\t");
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x10 && b2 <= 0x17) {
+    printf("RL\t");
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x18 && b2 <= 0x1f) {
+    printf("RR\t");
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x20 && b2 <= 0x27) {
+    printf("SLA\t");
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x28 && b2 <= 0x2f) {
+    printf("SRA\t");
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x38 && b2 <= 0x3f) {
+    printf("SRL\t");
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x40 && b2 <= 0x7f) {
+    printf("BIT\t");
+    printf("%c,", ((b2 >> 3) & 7) + '0');
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0x80 && b2 <= 0xbf) {
+    printf("RES\t");
+    printf("%c,", ((b2 >> 3) & 7) + '0');
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+  if (b2 >= 0xc0) {
+    printf("SET\t");
+    printf("%c,", ((b2 >> 3) & 7) + '0');
+    printf("%s\n", reg[b2 & 7]);
+    return 2;
+  }
+
+  puts(unknown);
+  return 2;
+}
+
+// Disassemble multi byte op-codes with prefix 0xed.
+static int edop(char *s, unsigned char **p) {
+  int b2, i;
+  int len = 2;
+
+  b2 = *(*p + 1);
+  switch (b2) {
+    case 0x40:
+      puts("IN\tB,(C)");
+      break;
+
+    case 0x41:
+      puts("OUT\t(C),B");
+      break;
+
+    case 0x42:
+      puts("SBC\tHL,BC");
+      break;
+
+    case 0x43:
+      i = *(*p + 2) + (*(*p + 3) << 8);
+      printf("LD\t(%04x),BC\n", i);
+      len = 4;
+      break;
+
+    case 0x44:
+       puts("NEG");
+      break;
+
+    case 0x45:
+      puts("RETN");
+      break;
+
+    case 0x46:
+      puts("IM\t0");
+      break;
+
+    case 0x47:
+      puts("LD\tI,A");
+      break;
+
+    case 0x48:
+      puts("IN\tC,(C)");
+      break;
+
+    case 0x49:
+      puts("OUT\t(C),C");
+      break;
+
+    case 0x4a:
+      puts("ADC\tHL,BC");
+      break;
+
+    case 0x4b:
+      i = *(*p + 2) + (*(*p + 3) << 8);
+      printf("LD\tBC,(%04x)\n", i);
+      len = 4;
+      break;
+
+    case 0x4d:
+      puts("RETI");
+      break;
+
+    case 0x4f:
+      puts("LD\tR,A");
+      break;
+
+    case 0x50:
+      puts("IN\tD,(C)");
+      break;
+
+    case 0x51:
+      puts("OUT\t(C),D");
+      break;
+
+    case 0x52:
+      puts("SBC\tHL,DE");
+      break;
+
+    case 0x53:
+      i = *(*p + 2) + (*(*p + 3) << 8);
+      printf("LD\t(%04x),DE\n", i);
+      len = 4;
+      break;
+
+    case 0x56:
+      puts("IM\t1");
+      break;
+
+    case 0x57:
+      puts("LD\tA,I");
+      break;
+
+    case 0x58:
+      puts("IN\tE,(C)");
+      break;
+
+    case 0x59:
+      puts("OUT\t(C),E");
+      break;
+
+    case 0x5a:
+      puts("ADC\tHL,DE");
+      break;
+
+    case 0x5b:
+      i = *(*p + 2) + (*(*p + 3) << 8);
+      printf("LD\tDE,(%04x)\n", i);
+      len = 4;
+      break;
+
+    case 0x5e:
+      puts("IM\t2");
+      break;
+
+    case 0x5f:
+      puts("LD\tA,R");
+      break;
+
+    case 0x60:
+      puts("IN\tH,(C)");
+      break;
+
+    case 0x61:
+      puts("OUT\t(C),H");
+      break;
+
+    case 0x62:
+      puts("SBC\tHL,HL");
+      break;
+
+    case 0x67:
+      puts("RRD");
+      break;
+
+    case 0x68:
+      puts("IN\tL,(C)");
+      break;
+
+    case 0x69:
+      puts("OUT\t(C),L");
+      break;
+
+    case 0x6a:
+      puts("ADC\tHL,HL");
+      break;
+
+    case 0x6f:
+      puts("RLD");
+      break;
+
+    case 0x72:
+      puts("SBC\tHL,SP");
+      break;
+
+    case 0x73:
+      i = *(*p + 2) + (*(*p + 3) << 8);
+      printf("LD\t(%04x),SP\n", i);
+      len = 4;
+      break;
+
+    case 0x78:
+      puts("IN\tA,(C)");
+      break;
+
+    case 0x79:
+      puts("OUT\t(C),A");
+      break;
+
+    case 0x7a:
+      puts("ADC\tHL,SP");
+      break;
+
+    case 0x7b:
+      i = *(*p + 2) + (*(*p + 3) << 8);
+      printf("LD\tSP,(%04x)\n", i);
+      len = 4;
+      break;
+
+    case 0xa0:
+      puts("LDI");
+      break;
+
+    case 0xa1:
+      puts("CPI");
+      break;
+
+    case 0xa2:
+      puts("INI");
+      break;
+
+    case 0xa3:
+      puts("OUTI");
+      break;
+
+    case 0xa8:
+      puts("LDD");
+      break;
+
+    case 0xa9:
+      puts("CPD");
+      break;
+
+    case 0xaa:
+      puts("IND");
+      break;
+
+    case 0xab:
+      puts("OUTD");
+      break;
+
+    case 0xb0:
+      puts("LDIR");
+      break;
+
+    case 0xb1:
+      puts("CPIR");
+      break;
+
+    case 0xb2:
+      puts("INIR");
+      break;
+
+    case 0xb3:
+      puts("OTIR");
+      break;
+
+    case 0xb8:
+      puts("LDDR");
+      break;
+
+    case 0xb9:
+      puts("CPDR");
+      break;
+
+    case 0xba:
+      puts("INDR");
+      break;
+
+    case 0xbb:
+      puts("OTDR");
+      break;
+
+    default:
+      puts(unknown);
+  }
+
+  return len;
+}
+
+// Disassemble multi byte op-codes with prefix 0xdd and 0xfd.
+static int ddfd(char *s, unsigned char **p) {
+  int b2;
+  char *ireg;
+  int len = 3;
+
+  if (**p == 0xdd) {
+    ireg = regix;
+  } else {
+    ireg = regiy;
+  }
+
+  b2 = *(*p + 1);
+  if (b2 >= 0x70 && b2 <= 0x77) {
+    printf("LD\t(%s+%02x),%s\n", ireg, *(*p + 2), reg[b2 & 7]);
+    return 3;
+  }
+
+  switch (b2) {
+    case 0x09:
+      printf("ADD\t%s,BC\n", ireg);
+      len = 2;
+      break;
+
+    case 0x19:
+      printf("ADD\t%s,DE\n", ireg);
+      len = 2;
+      break;
+
+    case 0x21:
+      printf("LD\t%s,%04x\n", ireg, *(*p + 2) + (*(*p + 3) << 8));
+      len = 4;
+      break;
+
+    case 0x22:
+      printf("LD\t(%04x),%s\n", *(*p + 2) + (*(*p + 3) << 8), ireg);
+      len = 4;
+      break;
+
+    case 0x23:
+      printf("INC\t%s\n", ireg);
+      len = 2;
+      break;
+
+    case 0x29:
+      if (**p == 0xdd) {
+        printf("ADD\tIX,IX\n");
+      } else {
+        printf("ADD\tIY,IY\n");
+      }
+      len = 2;
+      break;
+
+    case 0x2a:
+      printf("LD\t%s,(%04x)\n", ireg, *(*p + 2) + (*(*p + 3) << 8));
+      len = 4;
+      break;
+
+    case 0x2b:
+      printf("DEC\t%s\n", ireg);
+      len = 2;
+      break;
+
+    case 0x34:
+      printf("INC\t(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x35:
+      printf("DEC\t(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x36:
+      printf("LD\t(%s+%02x),%02x\n", ireg, *(*p + 2), *(*p + 3));
+      len = 4;
+      break;
+
+    case 0x39:
+      printf("ADD\t%s,SP\n", ireg);
+      len = 2;
+      break;
+
+    case 0x46:
+      printf("LD\tB,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x4e:
+      printf("LD\tC,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x56:
+      printf("LD\tD,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x5e:
+      printf("LD\tE,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x66:
+      printf("LD\tH,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x6e:
+      printf("LD\tL,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x7e:
+      printf("LD\tA,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x86:
+      printf("ADD\tA,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x8e:
+      printf("ADC\tA,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x96:
+      printf("SUB\t(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0x9e:
+      printf("SBC\tA,(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0xa6:
+      printf("AND\t(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0xae:
+      printf("XOR\t(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0xb6:
+      printf("OR\t(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0xbe:
+      printf("CP\t(%s+%02x)\n", ireg, *(*p + 2));
+      break;
+
+    case 0xcb:
+      switch (*(*p + 3)) {
+        case 0x06: printf("RLC\t(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x0e: printf("RRC\t(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x16: printf("RL\t(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x1e: printf("RR\t(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x26: printf("SLA\t(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x2e: printf("SRA\t(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x3e: printf("SRL\t(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x46: printf("BIT\t0,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x4e: printf("BIT\t1,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x56: printf("BIT\t2,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x5e: printf("BIT\t3,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x66: printf("BIT\t4,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x6e: printf("BIT\t5,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x76: printf("BIT\t6,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x7e: printf("BIT\t7,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x86: printf("RES\t0,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x8e: printf("RES\t1,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x96: printf("RES\t2,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0x9e: printf("RES\t3,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xa6: printf("RES\t4,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xae: printf("RES\t5,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xb6: printf("RES\t6,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xbe: printf("RES\t7,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xc6: printf("SET\t0,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xce: printf("SET\t1,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xd6: printf("SET\t2,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xde: printf("SET\t3,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xe6: printf("SET\t4,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xee: printf("SET\t5,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xf6: printf("SET\t6,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        case 0xfe: printf("SET\t7,(%s+%02x)\n", ireg, *(*p + 2)); break;
+        default: puts(unknown);
+      }
+      len = 4;
+      break;
+
+    case 0xe1:
+      printf("POP\t%s\n", ireg);
+      len = 2;
+      break;
+
+    case 0xe3:
+      printf("EX\t(SP),%s\n", ireg);
+      len = 2;
+      break;
+
+    case 0xe5:
+      printf("PUSH\t%s\n", ireg);
+      len = 2;
+      break;
+
+    case 0xe9:
+      printf("JP\t(%s)\n", ireg);
+      len = 2;
+      break;
+
+    case 0xf9:
+      printf("LD\tSP,%s\n", ireg);
+      len = 2;
+      break;
+
+    default:
+      puts(unknown);
+  }
+
+  return len;
+}
+
+//
+// Opcode tables.
+//
+
 struct opt {
-  int (*fun) ();
+  int (*fun)();
   char *text;
 };
 
@@ -292,582 +848,22 @@ static struct opt optab[256] = {
   { opout,  "RST\t38"   } /* 0xff */
 };
 
-static int addr;
-static char *unknown = "???";
-static char *reg[] = { "B", "C", "D", "E", "H", "L", "(HL)", "A" };
-static char *regix = "IX";
-static char *regiy = "IY";
-
-/*
- *  The function disass() is the only global function of
- *  this module. The first argument is a pointer to a
- *  unsigned char pointer, which points to the op-code
- *  to disassemble. The output of the disassembly goes
- *  to stdout, terminated by a newline. After the
- *  disassembly the pointer to the op-code will be
- *  increased by the size of the op-code, so that
- *  disass() can be called again.
- *  The second argument is the (Z80) address of the
- *  op-code to disassemble. It is used to calculate the
- *  destination address of relative jumps.
- */
+// The function disass() is the only global function of
+// this module. The first argument is a pointer to a
+// unsigned char pointer, which points to the op-code
+// to disassemble. The output of the disassembly goes
+// to stdout, terminated by a newline. After the
+// disassembly the pointer to the op-code will be
+// increased by the size of the op-code, so that
+// disass() can be called again.
+// The second argument is the (Z80) address of the
+// op-code to disassemble. It is used to calculate the
+// destination address of relative jumps.
 void disass(unsigned char **p, int adr) {
-  register int len;
+  int len;
 
   addr = adr;
-  len = (*optab[**p].fun) (optab[**p].text, p);
+  len = (*optab[**p].fun)(optab[**p].text, p);
   *p += len;
 }
 
-/*
- *  disassemble 1 byte op-codes
- */
-static int opout(char *s, char **p) {
-  puts(s);
-  return(1);
-}
-
-/*
- *  disassemble 2 byte op-codes of type "Op n"
- */
-static int nout(char *s, unsigned char **p) {
-  printf("%s%02x\n", s, *(*p + 1));
-  return(2);
-}
-
-/*
- *  disassemble 2 byte op-codes with indirect addressing
- */
-static int iout(char *s, unsigned char **p) {
-  printf(s, *(*p + 1));
-  putchar('\n');
-  return(2);
-}
-
-/*
- *  disassemble 2 byte op-codes with relative addressing
- */
-static int rout(char *s, char **p) {
-  printf("%s%04x\n", s, addr + *(*p + 1) + 2);
-  return(2);
-}
-
-/*
- *  disassemble 3 byte op-codes of type "Op nn"
- */
-static int nnout(char *s, unsigned char **p) {
-  register int i;
-
-  i = *(*p + 1) + (*(*p + 2) << 8);
-  printf("%s%04x\n", s, i);
-  return(3);
-}
-
-/*
- *  disassemble 3 byte op-codes with indirect addressing
- */
-static int inout(char *s, unsigned char **p) {
-  register int i;
-
-  i = *(*p + 1) + (*(*p + 2) << 8);
-  printf(s, i);
-  putchar('\n');
-  return(3);
-}
-
-/*
- *  disassemble multi byte op-codes with prefix 0xcb
- */
-static int cbop(char *s, unsigned char **p) {
-  register int b2;
-
-  b2 = *(*p + 1);
-  if (b2 >= 0x00 && b2 <= 0x07) {
-    printf("RLC\t");
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x08 && b2 <= 0x0f) {
-    printf("RRC\t");
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x10 && b2 <= 0x17) {
-    printf("RL\t");
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x18 && b2 <= 0x1f) {
-    printf("RR\t");
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x20 && b2 <= 0x27) {
-    printf("SLA\t");
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x28 && b2 <= 0x2f) {
-    printf("SRA\t");
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x38 && b2 <= 0x3f) {
-    printf("SRL\t");
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x40 && b2 <= 0x7f) {
-    printf("BIT\t");
-    printf("%c,", ((b2 >> 3) & 7) + '0');
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0x80 && b2 <= 0xbf) {
-    printf("RES\t");
-    printf("%c,", ((b2 >> 3) & 7) + '0');
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  if (b2 >= 0xc0) {
-    printf("SET\t");
-    printf("%c,", ((b2 >> 3) & 7) + '0');
-    printf("%s\n", reg[b2 & 7]);
-    return(2);
-  }
-  puts(unknown);
-  return(2);
-}
-
-/*
- *  disassemble multi byte op-codes with prefix 0xed
- */
-static int edop(char *s, unsigned char **p) {
-  register int b2, i;
-  int len = 2;
-
-  b2 = *(*p + 1);
-  switch (b2) {
-  case 0x40:
-    puts("IN\tB,(C)");
-    break;
-  case 0x41:
-    puts("OUT\t(C),B");
-    break;
-  case 0x42:
-    puts("SBC\tHL,BC");
-    break;
-  case 0x43:
-    i = *(*p + 2) + (*(*p + 3) << 8);
-    printf("LD\t(%04x),BC\n", i);
-    len = 4;
-    break;
-  case 0x44:
-    puts("NEG");
-    break;
-  case 0x45:
-    puts("RETN");
-    break;
-  case 0x46:
-    puts("IM\t0");
-    break;
-  case 0x47:
-    puts("LD\tI,A");
-    break;
-  case 0x48:
-    puts("IN\tC,(C)");
-    break;
-  case 0x49:
-    puts("OUT\t(C),C");
-    break;
-  case 0x4a:
-    puts("ADC\tHL,BC");
-    break;
-  case 0x4b:
-    i = *(*p + 2) + (*(*p + 3) << 8);
-    printf("LD\tBC,(%04x)\n", i);
-    len = 4;
-    break;
-  case 0x4d:
-    puts("RETI");
-    break;
-  case 0x4f:
-    puts("LD\tR,A");
-    break;
-  case 0x50:
-    puts("IN\tD,(C)");
-    break;
-  case 0x51:
-    puts("OUT\t(C),D");
-    break;
-  case 0x52:
-    puts("SBC\tHL,DE");
-    break;
-  case 0x53:
-    i = *(*p + 2) + (*(*p + 3) << 8);
-    printf("LD\t(%04x),DE\n", i);
-    len = 4;
-    break;
-  case 0x56:
-    puts("IM\t1");
-    break;
-  case 0x57:
-    puts("LD\tA,I");
-    break;
-  case 0x58:
-    puts("IN\tE,(C)");
-    break;
-  case 0x59:
-    puts("OUT\t(C),E");
-    break;
-  case 0x5a:
-    puts("ADC\tHL,DE");
-    break;
-  case 0x5b:
-    i = *(*p + 2) + (*(*p + 3) << 8);
-    printf("LD\tDE,(%04x)\n", i);
-    len = 4;
-    break;
-  case 0x5e:
-    puts("IM\t2");
-    break;
-  case 0x5f:
-    puts("LD\tA,R");
-    break;
-  case 0x60:
-    puts("IN\tH,(C)");
-    break;
-  case 0x61:
-    puts("OUT\t(C),H");
-    break;
-  case 0x62:
-    puts("SBC\tHL,HL");
-    break;
-  case 0x67:
-    puts("RRD");
-    break;
-  case 0x68:
-    puts("IN\tL,(C)");
-    break;
-  case 0x69:
-    puts("OUT\t(C),L");
-    break;
-  case 0x6a:
-    puts("ADC\tHL,HL");
-    break;
-  case 0x6f:
-    puts("RLD");
-    break;
-  case 0x72:
-    puts("SBC\tHL,SP");
-    break;
-  case 0x73:
-    i = *(*p + 2) + (*(*p + 3) << 8);
-    printf("LD\t(%04x),SP\n", i);
-    len = 4;
-    break;
-  case 0x78:
-    puts("IN\tA,(C)");
-    break;
-  case 0x79:
-    puts("OUT\t(C),A");
-    break;
-  case 0x7a:
-    puts("ADC\tHL,SP");
-    break;
-  case 0x7b:
-    i = *(*p + 2) + (*(*p + 3) << 8);
-    printf("LD\tSP,(%04x)\n", i);
-    len = 4;
-    break;
-  case 0xa0:
-    puts("LDI");
-    break;
-  case 0xa1:
-    puts("CPI");
-    break;
-  case 0xa2:
-    puts("INI");
-    break;
-  case 0xa3:
-    puts("OUTI");
-    break;
-  case 0xa8:
-    puts("LDD");
-    break;
-  case 0xa9:
-    puts("CPD");
-    break;
-  case 0xaa:
-    puts("IND");
-    break;
-  case 0xab:
-    puts("OUTD");
-    break;
-  case 0xb0:
-    puts("LDIR");
-    break;
-  case 0xb1:
-    puts("CPIR");
-    break;
-  case 0xb2:
-    puts("INIR");
-    break;
-  case 0xb3:
-    puts("OTIR");
-    break;
-  case 0xb8:
-    puts("LDDR");
-    break;
-  case 0xb9:
-    puts("CPDR");
-    break;
-  case 0xba:
-    puts("INDR");
-    break;
-  case 0xbb:
-    puts("OTDR");
-    break;
-  default:
-    puts(unknown);
-  }
-  return(len);
-}
-
-/*
- *  disassemble multi byte op-codes with prefix 0xdd and 0xfd
- */
-static int ddfd(char *s, unsigned char **p) {
-  register int b2;
-  register char *ireg;
-  int len = 3;
-
-  if (**p == 0xdd)
-    ireg = regix;
-  else
-    ireg = regiy;
-  b2 = *(*p + 1);
-  if (b2 >= 0x70 && b2 <= 0x77) {
-    printf("LD\t(%s+%02x),%s\n", ireg, *(*p + 2), reg[b2 & 7]);
-    return(3);
-  }
-  switch (b2) {
-  case 0x09:
-    printf("ADD\t%s,BC\n", ireg);
-    len = 2;
-    break;
-  case 0x19:
-    printf("ADD\t%s,DE\n", ireg);
-    len = 2;
-    break;
-  case 0x21:
-    printf("LD\t%s,%04x\n", ireg, *(*p + 2) + (*(*p + 3) << 8));
-    len = 4;
-    break;
-  case 0x22:
-    printf("LD\t(%04x),%s\n", *(*p + 2) + (*(*p + 3) << 8), ireg);
-    len = 4;
-    break;
-  case 0x23:
-    printf("INC\t%s\n", ireg);
-    len = 2;
-    break;
-  case 0x29:
-    if (**p == 0xdd)
-      printf("ADD\tIX,IX\n");
-    else
-      printf("ADD\tIY,IY\n");
-    len = 2;
-    break;
-  case 0x2a:
-    printf("LD\t%s,(%04x)\n", ireg, *(*p + 2) + (*(*p + 3) << 8));
-    len = 4;
-    break;
-  case 0x2b:
-    printf("DEC\t%s\n", ireg);
-    len = 2;
-    break;
-  case 0x34:
-    printf("INC\t(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x35:
-    printf("DEC\t(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x36:
-    printf("LD\t(%s+%02x),%02x\n", ireg, *(*p + 2), *(*p + 3));
-    len = 4;
-    break;
-  case 0x39:
-    printf("ADD\t%s,SP\n", ireg);
-    len = 2;
-    break;
-  case 0x46:
-    printf("LD\tB,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x4e:
-    printf("LD\tC,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x56:
-    printf("LD\tD,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x5e:
-    printf("LD\tE,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x66:
-    printf("LD\tH,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x6e:
-    printf("LD\tL,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x7e:
-    printf("LD\tA,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x86:
-    printf("ADD\tA,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x8e:
-    printf("ADC\tA,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x96:
-    printf("SUB\t(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0x9e:
-    printf("SBC\tA,(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0xa6:
-    printf("AND\t(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0xae:
-    printf("XOR\t(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0xb6:
-    printf("OR\t(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0xbe:
-    printf("CP\t(%s+%02x)\n", ireg, *(*p + 2));
-    break;
-  case 0xcb:
-    switch (*(*p + 3)) {
-    case 0x06:
-      printf("RLC\t(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x0e:
-      printf("RRC\t(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x16:
-      printf("RL\t(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x1e:
-      printf("RR\t(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x26:
-      printf("SLA\t(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x2e:
-      printf("SRA\t(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x3e:
-      printf("SRL\t(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x46:
-      printf("BIT\t0,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x4e:
-      printf("BIT\t1,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x56:
-      printf("BIT\t2,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x5e:
-      printf("BIT\t3,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x66:
-      printf("BIT\t4,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x6e:
-      printf("BIT\t5,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x76:
-      printf("BIT\t6,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x7e:
-      printf("BIT\t7,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x86:
-      printf("RES\t0,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x8e:
-      printf("RES\t1,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x96:
-      printf("RES\t2,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0x9e:
-      printf("RES\t3,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xa6:
-      printf("RES\t4,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xae:
-      printf("RES\t5,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xb6:
-      printf("RES\t6,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xbe:
-      printf("RES\t7,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xc6:
-      printf("SET\t0,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xce:
-      printf("SET\t1,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xd6:
-      printf("SET\t2,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xde:
-      printf("SET\t3,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xe6:
-      printf("SET\t4,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xee:
-      printf("SET\t5,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xf6:
-      printf("SET\t6,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    case 0xfe:
-      printf("SET\t7,(%s+%02x)\n", ireg, *(*p + 2));
-      break;
-    default:
-      puts(unknown);
-    }
-    len = 4;
-    break;
-  case 0xe1:
-    printf("POP\t%s\n", ireg);
-    len = 2;
-    break;
-  case 0xe3:
-    printf("EX\t(SP),%s\n", ireg);
-    len = 2;
-    break;
-  case 0xe5:
-    printf("PUSH\t%s\n", ireg);
-    len = 2;
-    break;
-  case 0xe9:
-    printf("JP\t(%s)\n", ireg);
-    len = 2;
-    break;
-  case 0xf9:
-    printf("LD\tSP,%s\n", ireg);
-    len = 2;
-    break;
-  default:
-    puts(unknown);
-  }
-  return(len);
-}

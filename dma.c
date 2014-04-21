@@ -1,15 +1,15 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * Intel 8237 DMA - Programmable DMA Controller
- * 
- * Channel 0: Winchester disk controller
- * Channel 1: Floppy disk controller
- * Channel 2: Visual display controller
- * Channel 3: Visual display controller
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// Intel 8237 DMA - Programmable DMA Controller
+// 
+// Channel 0: Winchester disk controller
+// Channel 1: Floppy disk controller
+// Channel 2: Visual display controller
+// Channel 3: Visual display controller
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -49,7 +49,7 @@ struct dma_controller {
   WORD curr_cnt[NUM_DMA_CHANNELS];
   BYTE mode[NUM_DMA_CHANNELS];
 
-  int flipflop;    /* Byte pointer flip/flop */
+  int flipflop;    // Byte pointer flip/flop.
 };
 
 struct dma_controller dma;
@@ -59,13 +59,13 @@ BYTE dma_status(int reg) {
 
   switch (reg) {
     case 0: 
-      /* Read status register */
+      // Read status register.
       L(printf("dma: read status %02X PC=%04X\n", dma.status, (WORD) (PC - ram)));
       status = dma.status;
       dma.status &= 0xf0;
       return status;
-    case 5: 
-      /* Read temporary register */
+    case 5:
+      // Read temporary register.
       L(printf("dma: read temp %02X\n", dma.temp));
       return dma.temp;
     case 1: 
@@ -83,16 +83,16 @@ void dma_command(BYTE data, int reg) {
   int channel;
   int value;
 
-  //printf("dma: write %02X to reg %02X\n", data, reg);
+  LL(printf("dma: write %02X to reg %02X\n", data, reg));
   switch (reg) {
     case 0:
-      /* Write command register */
+      // Write command register.
       L(printf("dma: write command reg %02X\n", data));
       dma.command = data;
       break;
 
     case 1:
-      /* Write request register */
+      // Write request register.
       channel = data & 0x03;
       value = (data >> 3) & 0x01;
       L(printf("dma%d: %s request\n", channel, value ? "set" : "clear"));
@@ -104,7 +104,7 @@ void dma_command(BYTE data, int reg) {
       break;
 
     case 2:
-      /* Write single mask register bit */
+      // Write single mask register bit.
       channel = data & 0x03;
       value = (data >> 3) & 0x01;
       LL(printf("dma%d: %s mask\n", channel, value ? "set" : "clear"));
@@ -116,7 +116,7 @@ void dma_command(BYTE data, int reg) {
       break;
 
     case 3:
-      /* Write mode register */
+      // Write mode register.
       channel = data & 0x03;
       value = data & 0xfc;
       L(printf("dma%d: write mode reg %02X\n", channel, value));
@@ -124,24 +124,24 @@ void dma_command(BYTE data, int reg) {
       break;
 
     case 4:
-      /* Clear byte pointer flip/flop */
+      // Clear byte pointer flip/flop.
       LL(printf("dma: clear pointer flip/flop %02X\n", data));
       dma.flipflop = 0;
       break;
 
     case 5:
-      /* Master clear */
+      // Master clear.
       L(printf("dma: master clear\n"));
       memset(&dma, 0, sizeof(struct dma_controller));
       break;
 
     case 6:
-      /* Illegal command */
+      // Illegal command.
       W(printf("dma: illegal command %02X\n", data));
       break;
 
     case 7: break;
-      /* Write all mask register bits */
+      // Write all mask register bits.
       L(printf("dma: write all mask reg %02X\n", data));
       dma.mask = data & 0x0f;
       break;
@@ -276,11 +276,10 @@ WORD dma_count(int channel) {
   return dma.curr_cnt[channel];
 }
 
-void init_dma(void) {
+void init_dma() {
   int i;
 
   memset(&dma, 0, sizeof(struct dma_controller));
-  
   for (i = 0; i < NUM_DMA_CHANNELS; ++i) {
     register_port(0xf0 + i * 2 + 0, dma_adr_in, dma_adr_out, i);
     register_port(0xf0 + i * 2 + 1, dma_cnt_in, dma_cnt_out, i);

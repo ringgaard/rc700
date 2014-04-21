@@ -1,42 +1,309 @@
-/*
- * Z80SIM  -  a Z80-CPU simulator
- *
- * Copyright (C) 1987-2006 by Udo Munk
- *
- * History:
- * 28-SEP-87 Development on TARGON/35 with AT&T Unix System V(3.1)
- * 11-JAN-89 Release 1.1
- * 08-FEB-89 Release 1.2
- * 13-MAR-89 Release 1.3
- * 09-FEB-90 Release 1.4 Ported to TARGON/31 M10/30
- * 20-DEC-90 Release 1.5 Ported to COHERENT 3.0
- * 10-JUN-92 Release 1.6 long casting problem solved with COHERENT 3.2
- *       and some optimization
- * 25-JUN-92 Release 1.7 comments in english
- * 07-OCT-06 Release 1.8 modified to compile on modern POSIX OS's
- */
-
-/*
- *  Like the function "cpu()" this one emulates 4 byte opcodes
- *  starting with 0xfd 0xcb
- */
+//
+// Z80SIM  -  a Z80-CPU simulator
+//
+// Copyright (C) 1987-2006 by Udo Munk
+//
+// Emulation of multi byte opcodes starting with 0xfd 0xcb
+//
 
 #include "sim.h"
 #include "simglb.h"
 
-static int trap_fdcb(void);
-static int op_tb0iyd(int), op_tb1iyd(int), op_tb2iyd(int), op_tb3iyd(int);
-static int op_tb4iyd(int), op_tb5iyd(int), op_tb6iyd(int), op_tb7iyd(int);
-static int op_rb0iyd(int), op_rb1iyd(int), op_rb2iyd(int), op_rb3iyd(int);
-static int op_rb4iyd(int), op_rb5iyd(int), op_rb6iyd(int), op_rb7iyd(int);
-static int op_sb0iyd(int), op_sb1iyd(int), op_sb2iyd(int), op_sb3iyd(int);
-static int op_sb4iyd(int), op_sb5iyd(int), op_sb6iyd(int), op_sb7iyd(int);
-static int op_rlciyd(int), op_rrciyd(int), op_rliyd(int), op_rriyd(int);
-static int op_slaiyd(int), op_sraiyd(int), op_srliyd(int);
+// Trap for illegal 0xfd 0xcb multi byte opcodes.
+static int trap_fdcb() {
+  cpu_error = OPTRAP4;
+  cpu_state = STOPPED;
+  return 0;
+}
 
-int op_fdcb_handel(void)
-{
-  static int (*op_fdcb[256]) () = {
+// BIT 0,(IY+d)
+static int op_tb0iyd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IY + data) & 1) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 1,(IY+d)
+static int op_tb1iyd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IY + data) & 2) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 2,(IY+d)
+static int op_tb2iyd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IY + data) & 4) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 3,(IY+d)
+static int op_tb3iyd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IY + data) & 8) ? (F &= ~(Z_FLAG | P_FLAG))
+         : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 4,(IY+d)
+static int op_tb4iyd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IY + data) & 16) ? (F &= ~(Z_FLAG | P_FLAG))
+          : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 5,(IY+d)
+static int op_tb5iyd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IY + data) & 32) ? (F &= ~(Z_FLAG | P_FLAG))
+          : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 6,(IY+d)
+static int op_tb6iyd(int data) {
+  F &= ~(N_FLAG | S_FLAG);
+  F |= H_FLAG;
+  (*(ram + IY + data) & 64) ? (F &= ~(Z_FLAG | P_FLAG))
+          : (F |= (Z_FLAG | P_FLAG));
+  return 20;
+}
+
+// BIT 7,(IY+d)
+static int op_tb7iyd(int data) {
+  F &= ~N_FLAG;
+  F |= H_FLAG;
+  if (*(ram + IY + data) & 128) {
+    F &= ~(Z_FLAG | P_FLAG);
+    F |= S_FLAG;
+  } else {
+    F |= (Z_FLAG | P_FLAG);
+    F &= ~S_FLAG;
+  }
+  return 20;
+}
+
+// RES 0,(IY+d)
+static int op_rb0iyd(int data) {
+  *(ram + IY + data) &= ~1;
+  return 23;
+}
+
+// RES 1,(IY+d)
+static int op_rb1iyd(int data) {
+  *(ram + IY + data) &= ~2;
+  return 23;
+}
+
+// RES 2,(IY+d)
+static int op_rb2iyd(int data) {
+  *(ram + IY + data) &= ~4;
+  return 23;
+}
+
+// RES 3,(IY+d)
+static int op_rb3iyd(int data) {
+  *(ram + IY + data) &= ~8;
+  return 23;
+}
+
+// RES 4,(IY+d)
+static int op_rb4iyd(int data) {
+  *(ram + IY + data) &= ~16;
+  return 23;
+}
+
+// RES 5,(IY+d)
+static int op_rb5iyd(int data) {
+  *(ram + IY + data) &= ~32;
+  return 23;
+}
+
+// RES 6,(IY+d)
+static int op_rb6iyd(int data) {
+  *(ram + IY + data) &= ~64;
+  return 23;
+}
+
+// RES 7,(IY+d)
+static int op_rb7iyd(int data) {
+  *(ram + IY + data) &= ~128;
+  return 23;
+}
+
+// SET 0,(IY+d)
+static int op_sb0iyd(int data) {
+  *(ram + IY + data) |= 1;
+  return 23;
+}
+
+// SET 1,(IY+d)
+static int op_sb1iyd(int data) {
+  *(ram + IY + data) |= 2;
+  return 23;
+}
+
+// SET 2,(IY+d)
+static int op_sb2iyd(int data) {
+  *(ram + IY + data) |= 4;
+  return 23;
+}
+
+// SET 3,(IY+d)
+static int op_sb3iyd(int data) {
+  *(ram + IY + data) |= 8;
+  return 23;
+}
+
+// SET 4,(IY+d)
+static int op_sb4iyd(int data) {
+  *(ram + IY + data) |= 16;
+  return 23;
+}
+
+// SET 5,(IY+d)
+static int op_sb5iyd(int data) {
+  *(ram + IY + data) |= 32;
+  return 23;
+}
+
+// SET 6,(IY+d)
+static int op_sb6iyd(int data) {
+  *(ram + IY + data) |= 64;
+  return 23;
+}
+
+// SET 7,(IY+d)
+static int op_sb7iyd(int data) {
+  *(ram + IY + data) |= 128;
+  return 23;
+}
+
+// RLC (IY+d)
+static int op_rlciyd(int data) {
+  int i;
+  BYTE *p;
+
+  p = ram + IY + data;
+  i = *p & 128;
+  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  F &= ~(H_FLAG | N_FLAG);
+  *p <<= 1;
+  if (i) *p |= 1;
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// RRC (IY+d)
+static int op_rrciyd(int data) {
+  int i;
+  BYTE *p;
+
+  p = ram + IY + data;
+  i = *p & 1;
+  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  F &= ~(H_FLAG | N_FLAG);
+  *p >>= 1;
+  if (i) *p |= 128;
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// RL (IY+d)
+static int op_rliyd(int data) {
+  int old_c_flag;
+  BYTE *p;
+
+  p = ram + IY + data;
+  old_c_flag = F & C_FLAG;
+  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p <<= 1;
+  if (old_c_flag) *p |= 1;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// RR (IY+d)
+static int op_rriyd(int data) {
+  int old_c_flag;
+  BYTE *p;
+
+  old_c_flag = F & C_FLAG;
+  p = ram + IY + data;
+  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p >>= 1;
+  if (old_c_flag) *p |= 128;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// SLA (IY+d)
+static int op_slaiyd(int data) {
+  BYTE *p;
+
+  p = ram + IY + data;
+  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p <<= 1;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// SRA (IY+d)
+static int op_sraiyd(int data) {
+  int i;
+  BYTE *p;
+
+  p = ram + IY + data;
+  i = *p & 128;
+  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p >>= 1;
+  *p |= i;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+// SRL (IY+d)
+static int op_srliyd(int data) {
+  BYTE *p;
+
+  p = ram + IY + data;
+  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
+  *p >>= 1;
+  F &= ~(H_FLAG | N_FLAG);
+  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
+  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
+  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
+  return 23;
+}
+
+int op_fdcb_handler() {
+  static int (*op_fdcb[256])() = {
     trap_fdcb,      /* 0x00 */
     trap_fdcb,      /* 0x01 */
     trap_fdcb,      /* 0x02 */
@@ -59,7 +326,7 @@ int op_fdcb_handel(void)
     trap_fdcb,      /* 0x13 */
     trap_fdcb,      /* 0x14 */
     trap_fdcb,      /* 0x15 */
-    op_rliyd,     /* 0x16 */
+    op_rliyd,       /* 0x16 */
     trap_fdcb,      /* 0x17 */
     trap_fdcb,      /* 0x18 */
     trap_fdcb,      /* 0x19 */
@@ -67,7 +334,7 @@ int op_fdcb_handel(void)
     trap_fdcb,      /* 0x1b */
     trap_fdcb,      /* 0x1c */
     trap_fdcb,      /* 0x1d */
-    op_rriyd,     /* 0x1e */
+    op_rriyd,       /* 0x1e */
     trap_fdcb,      /* 0x1f */
     trap_fdcb,      /* 0x20 */
     trap_fdcb,      /* 0x21 */
@@ -292,322 +559,27 @@ int op_fdcb_handel(void)
     trap_fdcb,      /* 0xfc */
     trap_fdcb,      /* 0xfd */
     op_sb7iyd,      /* 0xfe */
-    trap_fdcb     /* 0xff */
+    trap_fdcb       /* 0xff */
   };
 
-  register int d;
-  register int t;
+  int d;
+  int t;
 
   d = (char) *PC++;
 
 #ifdef WANT_PCC
-    if (PC > ram + 65535) /* correct PC overrun */
-      PC = ram;
+  // Correct PC overrun.
+  if (PC > ram + 65535) PC = ram;
 #endif
 
-  t = (*op_fdcb[*PC++]) (d);  /* execute next opcode */
+  // Execute next opcode.
+  t = (*op_fdcb[*PC++])(d);
 
 #ifdef WANT_PCC
-    if (PC > ram + 65535) /* again correct PC overrun */
-      PC = ram;
+  // Correct PC overrun.
+  if (PC > ram + 65535) PC = ram;
 #endif
 
-  return(t);
+  return t;
 }
 
-/*
- *  This function traps all illegal opcodes following the
- *  initial 0xfd 0xcb of a 4 byte opcode.
- */
-static int trap_fdcb(void)
-{
-  cpu_error = OPTRAP4;
-  cpu_state = STOPPED;
-  return(0L);
-}
-
-static int op_tb0iyd(int data)    /* BIT 0,(IY+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IY + data) & 1) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb1iyd(int data)    /* BIT 1,(IY+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IY + data) & 2) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb2iyd(int data)    /* BIT 2,(IY+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IY + data) & 4) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb3iyd(int data)    /* BIT 3,(IY+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IY + data) & 8) ? (F &= ~(Z_FLAG | P_FLAG))
-         : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb4iyd(int data)    /* BIT 4,(IY+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IY + data) & 16) ? (F &= ~(Z_FLAG | P_FLAG))
-          : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb5iyd(int data)    /* BIT 5,(IY+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IY + data) & 32) ? (F &= ~(Z_FLAG | P_FLAG))
-          : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb6iyd(int data)    /* BIT 6,(IY+d) */
-{
-  F &= ~(N_FLAG | S_FLAG);
-  F |= H_FLAG;
-  (*(ram + IY + data) & 64) ? (F &= ~(Z_FLAG | P_FLAG))
-          : (F |= (Z_FLAG | P_FLAG));
-  return(20);
-}
-
-static int op_tb7iyd(int data)    /* BIT 7,(IY+d) */
-{
-  F &= ~N_FLAG;
-  F |= H_FLAG;
-  if (*(ram + IY + data) & 128) {
-    F &= ~(Z_FLAG | P_FLAG);
-    F |= S_FLAG;
-  } else {
-    F |= (Z_FLAG | P_FLAG);
-    F &= ~S_FLAG;
-  }
-  return(20);
-}
-
-static int op_rb0iyd(int data)    /* RES 0,(IY+d) */
-{
-  *(ram + IY + data) &= ~1;
-  return(23);
-}
-
-static int op_rb1iyd(int data)    /* RES 1,(IY+d) */
-{
-  *(ram + IY + data) &= ~2;
-  return(23);
-}
-
-static int op_rb2iyd(int data)    /* RES 2,(IY+d) */
-{
-  *(ram + IY + data) &= ~4;
-  return(23);
-}
-
-static int op_rb3iyd(int data)    /* RES 3,(IY+d) */
-{
-  *(ram + IY + data) &= ~8;
-  return(23);
-}
-
-static int op_rb4iyd(int data)    /* RES 4,(IY+d) */
-{
-  *(ram + IY + data) &= ~16;
-  return(23);
-}
-
-static int op_rb5iyd(int data)    /* RES 5,(IY+d) */
-{
-  *(ram + IY + data) &= ~32;
-  return(23);
-}
-
-static int op_rb6iyd(int data)    /* RES 6,(IY+d) */
-{
-  *(ram + IY + data) &= ~64;
-  return(23);
-}
-
-static int op_rb7iyd(int data)    /* RES 7,(IY+d) */
-{
-  *(ram + IY + data) &= ~128;
-  return(23);
-}
-
-static int op_sb0iyd(int data)    /* SET 0,(IY+d) */
-{
-  *(ram + IY + data) |= 1;
-  return(23);
-}
-
-static int op_sb1iyd(int data)    /* SET 1,(IY+d) */
-{
-  *(ram + IY + data) |= 2;
-  return(23);
-}
-
-static int op_sb2iyd(int data)    /* SET 2,(IY+d) */
-{
-  *(ram + IY + data) |= 4;
-  return(23);
-}
-
-static int op_sb3iyd(int data)    /* SET 3,(IY+d) */
-{
-  *(ram + IY + data) |= 8;
-  return(23);
-}
-
-static int op_sb4iyd(int data)    /* SET 4,(IY+d) */
-{
-  *(ram + IY + data) |= 16;
-  return(23);
-}
-
-static int op_sb5iyd(int data)    /* SET 5,(IY+d) */
-{
-  *(ram + IY + data) |= 32;
-  return(23);
-}
-
-static int op_sb6iyd(int data)    /* SET 6,(IY+d) */
-{
-  *(ram + IY + data) |= 64;
-  return(23);
-}
-
-static int op_sb7iyd(int data)    /* SET 7,(IY+d) */
-{
-  *(ram + IY + data) |= 128;
-  return(23);
-}
-
-static int op_rlciyd(int data)    /* RLC (IY+d) */
-{
-  register int i;
-  register BYTE *p;
-
-  p = ram + IY + data;
-  i = *p & 128;
-  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  F &= ~(H_FLAG | N_FLAG);
-  *p <<= 1;
-  if (i) *p |= 1;
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_rrciyd(int data)    /* RRC (IY+d) */
-{
-  register int i;
-  register BYTE *p;
-
-  p = ram + IY + data;
-  i = *p & 1;
-  (i) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  F &= ~(H_FLAG | N_FLAG);
-  *p >>= 1;
-  if (i) *p |= 128;
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_rliyd(int data)   /* RL (IY+d) */
-{
-  register int old_c_flag;
-  register BYTE *p;
-
-  p = ram + IY + data;
-  old_c_flag = F & C_FLAG;
-  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p <<= 1;
-  if (old_c_flag) *p |= 1;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_rriyd(int data)   /* RR (IY+d) */
-{
-  register int old_c_flag;
-  register BYTE *p;
-
-  old_c_flag = F & C_FLAG;
-  p = ram + IY + data;
-  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p >>= 1;
-  if (old_c_flag) *p |= 128;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_slaiyd(int data)    /* SLA (IY+d) */
-{
-  register BYTE *p;
-
-  p = ram + IY + data;
-  (*p & 128) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p <<= 1;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_sraiyd(int data)    /* SRA (IY+d) */
-{
-  register int i;
-  register BYTE *p;
-
-  p = ram + IY + data;
-  i = *p & 128;
-  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p >>= 1;
-  *p |= i;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}
-
-static int op_srliyd(int data)    /* SRL (IY+d) */
-{
-  register BYTE *p;
-
-  p = ram + IY + data;
-  (*p & 1) ? (F |= C_FLAG) : (F &= ~C_FLAG);
-  *p >>= 1;
-  F &= ~(H_FLAG | N_FLAG);
-  (*p) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
-  (*p & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
-  (parity[*p]) ? (F &= ~P_FLAG) : (F |= P_FLAG);
-  return(23);
-}

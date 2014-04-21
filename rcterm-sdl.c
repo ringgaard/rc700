@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * SDL-based RC700 terminal
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// SDL-based RC700 terminal
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -27,23 +27,23 @@
 #define SCREEN_HEIGHT (25 * 11 * YSCALE)
 #define SCREEN_BPP    32
 
-/*
- * Character attributes:
- *   0x80 Change character mode
- *   0x01 Highlight (not used in RC702)
- *   0x02 Blink
- *   0x04 Semigraphic character set
- *   0x10 Reverse
- *   0x20 Underline
- *
- * Special codes:
- *   0xF0 End of row
- *   0xF1 End of row, stop DMA
- *   0xF2 End of screen
- *   0xF3 End of screen, stop DMA
- *
- *   Character matrix 7x11 bits
- */
+//
+// Character attributes:
+//   0x80 Change character mode
+//   0x01 Highlight (not used in RC702)
+//   0x02 Blink
+//   0x04 Semigraphic character set
+//   0x10 Reverse
+//   0x20 Underline
+//
+// Special codes:
+//   0xF0 End of row
+//   0xF1 End of row, stop DMA
+//   0xF2 End of screen
+//   0xF3 End of screen, stop DMA
+//
+//   Character matrix 7x11 bits
+//
 
 #define ATTR_MODE      0x80
 #define ATTR_HIGHLIGHT 0x01
@@ -181,7 +181,7 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
   }
 }
 
-void rcterm_init(void) {
+void rcterm_init() {
   L(printf("rcterm: init\n"));
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
   term = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_SWSURFACE | SDL_DOUBLEBUF);
@@ -190,7 +190,7 @@ void rcterm_init(void) {
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
-void rcterm_exit(void) {
+void rcterm_exit() {
   L(printf("rcterm: exit\n"));
   SDL_FreeSurface(term);
   L(printf("rcterm: quit\n"));
@@ -225,7 +225,7 @@ int rcterm_gotoxy(int col, int row) {
   return 1;
 }
 
-int rcterm_keypressed(void) {
+int rcterm_keypressed() {
   SDL_Event event;
   int sym;
   int code;

@@ -1,8 +1,8 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -16,12 +16,13 @@
 #include <unistd.h>
 #endif
 
-extern void init_io(void);
-extern void exit_io(void);
-extern int poll_crt(void);
-extern int poll_pio(void);
+void init_io();
+void exit_io();
+int poll_crt();
+int poll_pio();
 
 #define MAX_FLOPPIES 4
+
 char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
@@ -56,12 +57,14 @@ void cpu_poll() {
   }
 }
 
-static void init_rc700(void) {
+static void init_rc700() {
   int i;
 
-  wrk_ram = PC = STACK = ram;
+  // Clear RAM and start executing at 0x000.
+  PC = STACK = ram;
   memset(ram, 0, 65536);
 
+  // Initialize peripheral devices.
   init_rom();
   init_pio();
   init_sio();
@@ -72,6 +75,7 @@ static void init_rc700(void) {
   init_wdc();
   init_ftp();
   
+  // Mount floppy disks images.
   for (i = 0; i < num_floppies; ++i) {
     fdc_mount_disk(i, floppy[i]);
   }
@@ -110,6 +114,7 @@ int main(int argc, char *argv[]) {
   printf("Z80-SIM Release %s, %s\n\n", RELEASE, COPYR);
   fflush(stdout);
 
+  // Get command line parameters.
   for (i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
       char *s = argv[i] + 1;
@@ -151,9 +156,11 @@ int main(int argc, char *argv[]) {
   sigaction(SIGINT, &sa, NULL);
 #endif
 
+  // Initialize simulator.
   init_io();
   init_rc700();
 
+  // Run simulator.
   if (suspend) {
     mon();
     rcterm_init();
@@ -182,7 +189,8 @@ int main(int argc, char *argv[]) {
   sa.sa_handler = SIG_DFL;
   sigaction(SIGINT, &sa, NULL);
 #endif
-  
+
+  // Flush changes to floppy disk images.  
   for (i = 0; i < num_floppies; ++i) {
     if (floppy[i]) fdc_flush_disk(i, floppy[i]);
   }

@@ -1,15 +1,15 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * Z80 CTC - Counter and Timer Channels 
- *
- * Channel 0: Baudrate SIO A
- * Channel 1: Baudrate SIO B
- * Channel 2: CRT interrupt bridge
- * Channel 3: FDC interrupt bridge
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// Z80 CTC - Counter and Timer Channels 
+//
+// Channel 0: Baudrate SIO A
+// Channel 1: Baudrate SIO B
+// Channel 2: CRT interrupt bridge
+// Channel 3: FDC interrupt bridge
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -30,9 +30,9 @@
 #define CTC_CTRL_INT          0x80
 
 struct counter_channel {
-  int int_vec;      /* Interrupt vector */
-  BYTE control;     /* Control register */
-  BYTE time;        /* Time constant register */
+  int int_vec;      // Interrupt vector
+  BYTE control;     // Control register
+  BYTE time;        // Time constant register
   int counter;
 };
 
@@ -72,7 +72,7 @@ void ctc_trigger(int channel) {
   }
 }
 
-void init_ctc(void) {
+void init_ctc() {
   int i;
   
   for (i = 0; i < NUM_CTC_CHANNELS; ++i) {

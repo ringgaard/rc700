@@ -1,106 +1,105 @@
-/*
- * Z80SIM  -  a Z80-CPU simulator
- *
- * Copyright (C) 1987-2006 by Udo Munk
- *
- * History:
- * 28-SEP-87 Development on TARGON/35 with AT&T Unix System V.3
- * 11-JAN-89 Release 1.1
- * 08-FEB-89 Release 1.2
- * 13-MAR-89 Release 1.3
- * 09-FEB-90 Release 1.4 Ported to TARGON/31 M10/30
- * 20-DEC-90 Release 1.5 Ported to COHERENT
- * 10-JUN-92 Release 1.6 long casting problem solved with COHERENT 3.2
- *       and some optimization
- * 25-JUN-92 Release 1.7 comments in english and ported to COHERENT 4.0
- * 04-OCT-06 Release 1.8 modified to compile on modern POSIX OS's
- */
-
-/*
- *  This module contains all the global variables
- */
+//
+// Z80SIM  -  a Z80-CPU simulator
+//
+// Copyright (C) 1987-2006 by Udo Munk
+//
 
 #include "sim.h"
 
-/*
- *  CPU-Register
- */
-BYTE A,B,C,D,E,H,L;   /* Z80 primary registers */
-int  F;       /* normaly 8-Bit, but int is faster */
+//
+//  CPU registers.
+//
+
+// Z80 primary registers.
+BYTE A, B, C, D, E, H, L;   
 WORD IX, IY;
-BYTE A_,B_,C_,D_,E_,H_,L_;  /* Z80 secoundary registers */
-int  F_;
-BYTE *PC;     /* Z80 program counter */
-BYTE *STACK;      /* Z80 stack pointer */
-BYTE I;       /* Z80 interrupt register */
-BYTE IFF;     /* Z80 interrupt flags */
-long R;       /* Z80 refresh register */
-        /* is normaly a 8 bit register  */
-        /* the 32 bits are used to measure the */
-        /* clock frequency */
+BYTE F;
 
-/*
- *  Variables for memory of the emulated CPU
- */
-BYTE ram[65536L];   /* 64KB RAM */
-BYTE *wrk_ram;      /* workpointer into memory for dump etc. */
+// Z80 secondary registers.
+BYTE A_, B_, C_, D_, E_, H_, L_;
+BYTE F_;
 
-/*
- *  Variables for history memory
- */
+// Z80 program counter.
+BYTE *PC;
+
+// Z80 stack pointer.
+BYTE *STACK;
+
+// Z80 interrupt register.
+BYTE I;
+
+// Z80 interrupt flags.
+BYTE IFF;
+
+// Z80 refresh register.
+long R;       
+
+//
+// RAM memory.
+//
+
+BYTE ram[65536];   // 64KB RAM
+
+//
+// Trace history.
+//
+
 #ifdef HISIZE
-struct history his[HISIZE]; /* memory to hold trace information */
-int h_next;     /* index into trace memory */
-int h_flag;     /* flag for trace memory overrun */
+struct history his[HISIZE]; // Trace information.
+int h_next;                 // Index into trace history.
+int h_flag;                 // Flag for trace history overrun.
 #endif
 
-/*
- *  Variables for breakpoint memory
- */
+//
+// Breakpoints.
+//
+
 #ifdef SBSIZE
-struct softbreak soft[SBSIZE];  /* memory to hold breakpoint information */
-int sb_next;      /* index into breakpoint memory */
+struct softbreak soft[SBSIZE];
+int sb_next;
 #endif
 
-/*
- *  Variables for runtime measurement
- */
+//
+// Runtime measurement.
+//
+
 #ifdef WANT_TIM
-long t_states;      /* number of counted T states */
-int t_flag;     /* flag, 1 = on, 0 = off */
-BYTE *t_start = ram + 65535;  /* start address for measurement */
-BYTE *t_end = ram + 65535;  /* end address for measurement */
+long t_states;                // Number of counted T states.
+int t_flag;
+BYTE *t_start = ram + 65535;  // Start address for measurement.
+BYTE *t_end = ram + 65535;    // End address for measurement.
 #endif
 
-/*
- *  Flag to control operation of simulation
- */
-int s_flag;         /* flag for -s option */
-int l_flag;         /* flag for -l option */
-int m_flag;         /* flag for -m option */
-int x_flag;         /* flag for -x option */
-int i_flag = 1;     /* flag for -i option */
-int f_flag;         /* flag for -f option */
-char xfn[LENCMD];   /* buffer for filename (option -x) */
-int break_flag = 0; /* 1 = break at HALT, 0 = execute HALT */
-int cpu_state;      /* status of CPU emulation */
-int cpu_error;      /* error status of CPU emulation */
-int int_mode;       /* CPU interrupt mode (IM 0, IM 1, IM 2) */
-int int_type;       /* type of interrupt */
-int int_vec;        /* interrupt vector */
-float freq;         /* CPU clock in usec */
-int cntl_c;         /* flag for cntl-c entered */
-int cntl_bs;        /* flag for cntl-\ entered */
-int clk_ctr = 0;    /* counter for generating ticks from the system clock */
+//
+// Simulator control flags.
+//
 
-/*
- * Interrupt daisy chain
- */
+int s_flag;
+int l_flag;
+int m_flag;
+int x_flag;
+int i_flag = 1;
+int f_flag;
+int break_flag = 0; // 1 = break at HALT, 0 = execute HALT
+
+//
+// Simulator state.
+//
+
+int cpu_state;      // Status of CPU emulation.
+int cpu_error;      // Error status of CPU emulation.
+
+int int_mode;       // CPU interrupt mode (IM 0, IM 1, IM 2)
+int int_type;       // Interrupt type.
+int int_vec;        // Interrupt vector.
+
+float freq;         // CPU clock in usec.
+int clk_ctr = 0;    // Counter for generating ticks from the system clock.
+
+// Interrupt daisy chain for interrupt priority.
 int int_chain[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
-/*
- *  Table with pre-computed parity
- */
+//  Pre-computed parity table.
 int parity[256] = {
     0 /* 00000000 */, 1 /* 00000001 */, 1 /* 00000010 */,
     0 /* 00000011 */, 1 /* 00000100 */, 0 /* 00000101 */,

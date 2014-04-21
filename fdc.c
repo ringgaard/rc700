@@ -1,10 +1,10 @@
-/*
- * RC700  -  a Regnecentralen RC700 simulator
- *
- * Copyright (C) 2012 by Michael Ringgaard
- *
- * uPD765A - Floppy-Disk Controller 
- */
+//
+// RC700  -  a Regnecentralen RC700 simulator
+//
+// Copyright (C) 2012 by Michael Ringgaard
+//
+// uPD765A - Floppy-Disk Controller 
+//
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,17 +17,17 @@
 #define LL(x)
 #define W(x) x
 
-/* FDC status register bits */
-#define FDC_STAT_FDD0_BUSY 0x01 /* FDD 0 is in seek mode */
-#define FDC_STAT_FDD1_BUSY 0x02 /* FDD 1 is in seek mode */
-#define FDC_STAT_FDD2_BUSY 0x04 /* FDD 2 is in seek mode */
-#define FDC_STAT_FDD3_BUSY 0x08 /* FDD 3 is in seek mode */
-#define FDC_STAT_CB        0x10 /* FDC busy, read or write command in progress */
-#define FDC_STAT_EXM       0x20 /* Execution mode */
-#define FDC_STAT_DIO       0x40 /* Data input/output */
-#define FDC_STAT_DFM       0x80 /* Request for master */
+// FDC status register bits.
+#define FDC_STAT_FDD0_BUSY 0x01 // FDD 0 is in seek mode
+#define FDC_STAT_FDD1_BUSY 0x02 // FDD 1 is in seek mode
+#define FDC_STAT_FDD2_BUSY 0x04 // FDD 2 is in seek mode
+#define FDC_STAT_FDD3_BUSY 0x08 // FDD 3 is in seek mode
+#define FDC_STAT_CB        0x10 // FDC busy, read or write command in progress
+#define FDC_STAT_EXM       0x20 // Execution mode
+#define FDC_STAT_DIO       0x40 // Data input/output
+#define FDC_STAT_DFM       0x80 // Request for master
 
-/* FDC commands */
+// FDC commands.
 #define FDC_CMD_READ_TRACK              2
 #define FDC_CMD_SPECIFY                 3
 #define FDC_CMD_SENSE_DRIVE_STATUS      4
@@ -44,40 +44,39 @@
 #define FDC_CMD_SCAN_LOW_OR_EQUAL       25
 #define FDC_CMD_SCAN_HIGH_OR_EQUAL      29
 
-/* FDC command registers */
+//
+// FDC command registers.
+//
 
-/* FDC result registers */
+// FDC result registers.
 #define FDC_RES_ST0 0
 #define FDC_RES_ST1 1
 #define FDC_RES_ST2 2
 
-/* FDC status register 0 */
+// FDC status register 0.
+#define FDC_ST0_NR    0x08       // Not ready
+#define FDC_ST0_EC    0x10       // Equipment check
+#define FDC_ST0_SE    0x20       // Seek end
 
-#define FDC_ST0_NR    0x08       /* Not ready */
-#define FDC_ST0_EC    0x10       /* Equipment check */
-#define FDC_ST0_SE    0x20       /* Seek end */
+#define FDC_ST0_NT    0x00       // Interrupt code, normal termination
+#define FDC_ST0_AT    0x40       // Interrupt code, abnormal termination
+#define FDC_ST0_IC    0x80       // Interrupt code, invalid command
+#define FDC_ST0_MASK  0xE0       // Interrupt code mask
 
-#define FDC_ST0_NT    0x00       /* Interrupt code, normal termination */
-#define FDC_ST0_AT    0x40       /* Interrupt code, abnormal termination */
-#define FDC_ST0_IC    0x80       /* Interrupt code, invalid command */
-#define FDC_ST0_MASK  0xE0       /* Interrupt code mask */
+// FDC status register 1.
+#define FDC_ST1_MA    0x01       // Missing address mark
+#define FDC_ST1_NW    0x02       // Not writable
+#define FDC_ST1_ND    0x04       // No data
+#define FDC_ST1_OR    0x10       // Overrun
+#define FDC_ST1_DE    0x20       // Data error
+#define FDC_ST1_EN    0x80       // End of cylinder
 
-/* FDC status register 1 */
-
-#define FDC_ST1_MA    0x01       /* Missing address mark */
-#define FDC_ST1_NW    0x02       /* Not writable */
-#define FDC_ST1_ND    0x04       /* No data */
-#define FDC_ST1_OR    0x10       /* Overrun */
-#define FDC_ST1_DE    0x20       /* Data error */
-#define FDC_ST1_EN    0x80       /* End of cylinder */
-
-/* FDC status register 3 */
-
-#define FDC_ST3_TS    0x08       /* Two-sided */
-#define FDC_ST3_T0    0x10       /* Track 0 */
-#define FDC_ST3_RY    0x20       /* Ready */
-#define FDC_ST3_WP    0x40       /* Write protected */
-#define FDC_ST3_FT    0x80       /* Fault */
+// FDC status register 3.
+#define FDC_ST3_TS    0x08       // Two-sided
+#define FDC_ST3_T0    0x10       // Track 0
+#define FDC_ST3_RY    0x20       // Ready
+#define FDC_ST3_WP    0x40       // Write protected
+#define FDC_ST3_FT    0x80       // Fault
 
 static int fdc_parameter_count[] = {
   1, 1,  /*  0 */
@@ -359,7 +358,7 @@ void fdc_format_track(int drive, int head) {
   L(printf("format done\n"));
 }
 
-void fdc_execute_command(void) {
+void fdc_execute_command() {
   int cmd, head, drive, srt, hut, intr, prev_st0;
 
   cmd = fdc.command[0] & 0x1f;
@@ -496,12 +495,12 @@ void fdc_data_out(BYTE data, int dev) {
 
   LL(printf("fdc: command %02X\n", data));
   if (fdc.status & FDC_STAT_CB) {
-    /* Add command byte */
+    // Add command byte.
     if (fdc.command_index < MAX_FDC_COMMAND_BYTES) {
       fdc.command[fdc.command_index++] = data;
     }
   } else {
-    /* Start new command */
+    // Start new command.
     fdc.command[0] = data;
     cmd = data & 0x1f;
     fdc.command_index = 1;
@@ -544,7 +543,7 @@ void fdc_flush_disk(int drive, char *imagefile) {
   }
 }
 
-void init_fdc(void) {
+void init_fdc() {
   memset(&fdc, 0, sizeof(struct floppy_disk_controller));
   fdc.status = FDC_STAT_DFM;
   fdc.st0 = FDC_ST0_SE;
