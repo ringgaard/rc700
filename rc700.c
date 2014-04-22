@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
 
   // Flush changes to floppy disk images.  
   for (i = 0; i < num_floppies; ++i) {
-    if (floppy[i]) fdc_flush_disk(i, floppy[i]);
+    fdc_flush_disk(i);
   }
 
   return 0;

@@ -39,6 +39,7 @@ struct disk *load_disk_image(char *imagefile) {
   disk = malloc(sizeof(struct disk));
   if (!disk) return NULL;
   memset(disk, 0, sizeof(struct disk));
+  strcpy(disk->filename, imagefile);
 
   // Read image into memory.
   f = fopen(imagefile, "rb");
@@ -178,7 +179,7 @@ struct disk *load_disk_image(char *imagefile) {
   return disk;
 }
 
-int save_disk_image(struct disk *disk, char *imagefile) {
+int save_disk_image(struct disk *disk) {
   FILE *f;
   struct tm *tm;
   time_t now;
@@ -194,9 +195,9 @@ int save_disk_image(struct disk *disk, char *imagefile) {
 #endif
 
   // Create output file.
-  f = fopen(imagefile, "wb");
+  f = fopen(disk->filename, "wb");
   if (!f) {
-    perror(imagefile);
+    perror(disk->filename);
     return -1;
   }
   

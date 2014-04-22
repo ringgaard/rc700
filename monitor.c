@@ -22,6 +22,7 @@
 
 void disasm(unsigned char **p, int adr);
 void dump_screen();
+int fdc_mount_disk(int drive, char *imagefile);
 
 BYTE *wrk_ram;     // Workpointer into memory for dumps etc.
 
@@ -803,6 +804,28 @@ static int do_getfile(char *s) {
   }
 }
 
+static int do_mount(char *s) {
+  char fn[CMDLEN];
+  char *pfn = fn;
+  int drive;
+
+  while (isspace(*s)) s++;
+  while (*s != ',' && *s != '\n' && *s != '\0') *pfn++ = *s++;
+  *pfn = '\0';
+  if (strlen(fn) == 0) {
+    puts("no disk image file name given");
+    return 1;
+  }
+
+  if (*s == ',') {
+    drive = exatoi(++s);
+  } else {
+    drive = 0;
+  }
+
+  fdc_mount_disk(drive & 3, fn);
+}
+
 // Output help text.
 static void do_help() {
   puts("r filename[,address]      read object into memory");
@@ -827,6 +850,7 @@ static void do_help() {
   puts("c                         measure clock frequency");
   puts("s                         show settings");
   puts("n                         dump screen buffer");
+  puts("M filename[,drive]        mount disk drive");
   puts("q                         quit");
 }
 
@@ -913,6 +937,10 @@ void mon() {
 
       case 'n':
         dump_screen();
+        break;
+
+      case 'M':
+        do_mount(cmd + 1);
         break;
 
       case '?':

@@ -31,11 +31,12 @@ struct disk {
   char *label;
   int num_tracks;
   int dirty;
+  char filename[256];
   struct track tracks[MAX_CYLINDERS][MAX_SIDES];
 };
 
 struct disk *load_disk_image(char *imagefile);
-int save_disk_image(struct disk *disk, char *imagefile);
+int save_disk_image(struct disk *disk);
 void free_disk_image(struct disk *disk);
 
 int write_disk_sector(struct disk *disk, int c, int h, int s, char *data, int size);

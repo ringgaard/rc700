@@ -76,7 +76,7 @@ int poll_crt();
 
 void init_fdc();
 int fdc_mount_disk(int drive, char *imagefile);
-void fdc_flush_disk(int drive, char *imagefile);
+void fdc_flush_disk(int drive);
 
 // ftp.c
 

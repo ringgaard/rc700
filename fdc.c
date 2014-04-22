@@ -525,6 +525,15 @@ void fdc_floppy_motor(BYTE data, int dev) {
 int fdc_mount_disk(int drive, char *imagefile) {
   struct disk *disk;
 
+  if (fdc.disk[drive]) {
+    if (fdc.disk[drive]->dirty) {
+      W(printf("fdc: save drive %d to %s\n", drive, fdc.disk[drive]->filename));
+      save_disk_image(fdc.disk[drive]);
+    }
+    free_disk_image(fdc.disk[drive]);
+    fdc.disk[drive] = NULL;
+  }
+
   L(printf("fdc: mount %s on drive %d\n", imagefile, drive));
   disk = load_disk_image(imagefile);
   if (disk) {
@@ -536,10 +545,10 @@ int fdc_mount_disk(int drive, char *imagefile) {
   }
 }
 
-void fdc_flush_disk(int drive, char *imagefile) {
+void fdc_flush_disk(int drive) {
   if (fdc.disk[drive] && fdc.disk[drive]->dirty) {
-    W(printf("fdc: save drive %d to %s\n", drive, imagefile));
-    save_disk_image(fdc.disk[drive], imagefile);
+    W(printf("fdc: save drive %d to %s\n", drive, fdc.disk[drive]->filename));
+    save_disk_image(fdc.disk[drive]);
   }
 }
 

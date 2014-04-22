@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  save_disk_image(disk, argv[1]);
+  save_disk_image(disk);
   free_disk_image(disk);
 
   return 0;

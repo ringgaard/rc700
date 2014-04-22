@@ -54,6 +54,8 @@ BYTE *PC, *STACK, I, IFF;
 WORD IX, IY;
 BYTE F, F_;
 long R;
+
+// 64K RAM image.
 extern BYTE ram[];
 
 // CPU simulator state.
