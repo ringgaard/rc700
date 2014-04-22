@@ -2,14 +2,14 @@
 // Z80SIM  -  a Z80-CPU simulator
 //
 // Copyright (C) 1987-2006 by Udo Munk
+// Modified for RC700 simulator by Michael Ringgaard
 //
 // Emulation of multi byte opcodes starting with 0xed
 //
 
-#include <stdio.h>
-
-#include "sim.h"
 #include "simglb.h"
+
+void genintr();
 
 // Trap for illegal 0xed multi byte opcodes.
 static int trap_ed() {
@@ -76,9 +76,8 @@ static int op_neg() {
 
 // IN A,(C)
 static int op_inaic() {
-  BYTE io_in();
 
-  A = io_in(C);
+  A = cpu_in(C);
   F &= ~(N_FLAG | H_FLAG);
   (A) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
   (A & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
@@ -88,9 +87,8 @@ static int op_inaic() {
 
 // IN B,(C)
 static int op_inbic() {
-  BYTE io_in();
 
-  B = io_in(C);
+  B = cpu_in(C);
   F &= ~(N_FLAG | H_FLAG);
   (B) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
   (B & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
@@ -100,9 +98,7 @@ static int op_inbic() {
 
 // IN C,(C)
 static int op_incic() {
-  BYTE io_in();
-
-  C = io_in(C);
+  C = cpu_in(C);
   F &= ~(N_FLAG | H_FLAG);
   (C) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
   (C & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
@@ -112,9 +108,7 @@ static int op_incic() {
 
 // IN D,(C)
 static int op_indic() {
-  BYTE io_in();
-
-  D = io_in(C);
+  D = cpu_in(C);
   F &= ~(N_FLAG | H_FLAG);
   (D) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
   (D & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
@@ -124,9 +118,7 @@ static int op_indic() {
 
 // IN E,(C)
 static int op_ineic() {
-  BYTE io_in();
-
-  E = io_in(C);
+  E = cpu_in(C);
   F &= ~(N_FLAG | H_FLAG);
   (E) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
   (E & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
@@ -136,9 +128,7 @@ static int op_ineic() {
 
 // IN H,(C)
 static int op_inhic() {
-  BYTE io_in();
-
-  H = io_in(C);
+  H = cpu_in(C);
   F &= ~(N_FLAG | H_FLAG);
   (H) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
   (H & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
@@ -148,9 +138,7 @@ static int op_inhic() {
 
 // IN L,(C)
 static int op_inlic() {
-  BYTE io_in();
-
-  L = io_in(C);
+  L = cpu_in(C);
   F &= ~(N_FLAG | H_FLAG);
   (L) ? (F &= ~Z_FLAG) : (F |= Z_FLAG);
   (L & 128) ? (F |= S_FLAG) : (F &= ~S_FLAG);
@@ -160,65 +148,49 @@ static int op_inlic() {
 
 // OUT (C),A
 static int op_outca() {
-  BYTE io_out();
-
-  io_out(C, A);
+  cpu_out(C, A);
   return 12;
 }
 
 // OUT (C),B
 static int op_outcb() {
-  BYTE io_out();
-
-  io_out(C, B);
+  cpu_out(C, B);
   return 12;
 }
 
 // OUT (C),C
 static int op_outcc() {
-  BYTE io_out();
-
-  io_out(C, C);
+  cpu_out(C, C);
   return 12;
 }
 
 // OUT (C),D
 static int op_outcd() {
-  BYTE io_out();
-
-  io_out(C, D);
+  cpu_out(C, D);
   return 12;
 }
 
 // OUT (C),E
 static int op_outce() {
-  BYTE io_out();
-
-  io_out(C, E);
+  cpu_out(C, E);
   return 12;
 }
 
 // OUT (C),H
 static int op_outch() {
-  BYTE io_out();
-
-  io_out(C, H);
+  cpu_out(C, H);
   return 12;
 }
 
 // OUT (C),L
 static int op_outcl() {
-  BYTE io_out();
-
-  io_out(C, L);
+  cpu_out(C, L);
   return 12;
 }
 
 // INI
 static int op_ini() {
-  BYTE io_in();
-
-  *(ram + (H << 8) + L) = io_in(C);
+  *(ram + (H << 8) + L) = cpu_in(C);
   L++;
   if (!L) H++;
   B--;
@@ -231,11 +203,10 @@ static int op_ini() {
 static int op_inir() {
   int t  = -21;
   BYTE *d;
-  BYTE io_in();
 
   d = ram + (H << 8) + L;
   do {
-    *d++ = io_in(C);
+    *d++ = cpu_in(C);
     B--;
     t += 21;
   } while (B);
@@ -247,9 +218,7 @@ static int op_inir() {
 
 // IND
 static int op_ind() {
-  BYTE io_in();
-
-  *(ram + (H << 8) + L) = io_in(C);
+  *(ram + (H << 8) + L) = cpu_in(C);
   L--;
   if (L == 0xff) H--;
   B--;
@@ -262,11 +231,10 @@ static int op_ind() {
 static int op_indr() {
   int t  = -21;
   BYTE *d;
-  BYTE io_in();
 
   d = ram + (H << 8) + L;
   do {
-    *d-- = io_in(C);
+    *d-- = cpu_in(C);
     B--;
     t += 21;
   } while (B);
@@ -278,9 +246,7 @@ static int op_indr() {
 
 // OUTI
 static int op_outi() {
-  BYTE io_out();
-
-  io_out(C, *(ram + (H << 8) * L));
+  cpu_out(C, *(ram + (H << 8) * L));
   L++;
   if (!L) H++;
   B--;
@@ -293,11 +259,10 @@ static int op_outi() {
 static int op_otir() {
   int t  = -21;
   BYTE *d;
-  BYTE io_out();
 
   d = ram + (H << 8) + L;
   do {
-    io_out(C, *d++);
+    cpu_out(C, *d++);
     B--;
     t += 21;
   } while (B);
@@ -309,9 +274,7 @@ static int op_otir() {
 
 // OUTD
 static int op_outd() {
-  BYTE io_out();
-
-  io_out(C, *(ram + (H << 8) * L));
+  cpu_out(C, *(ram + (H << 8) * L));
   L--;
   if (L == 0xff) H--;
   B--;
@@ -324,11 +287,10 @@ static int op_outd() {
 static int op_otdr() {
   int t  = -21;
   BYTE *d;
-  BYTE io_out();
 
   d = ram + (H << 8) + L;
   do {
-    io_out(C, *d--);
+    cpu_out(C, *d--);
     B--;
     t += 21;
   } while (B);
@@ -1074,7 +1036,7 @@ int op_ed_handler() {
   // Execute next opcode.
   t = (*op_ed[*PC++])();
 
-#ifdef WANT_PCC
+#ifdef ENABLE_PCC
   // Correct PC overrun.
   if (PC > ram + 65535) PC = ram;
 #endif

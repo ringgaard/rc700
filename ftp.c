@@ -9,8 +9,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include "sim.h"
+
 #include "simglb.h"
+#include "sim.h"
 
 #define L(x) x
 #define LL(x)

@@ -2,14 +2,9 @@
 // Z80SIM  -  a Z80-CPU simulator
 //
 // Copyright (C) 1987-2006 by Udo Munk
+// Modified for RC700 simulator by Michael Ringgaard
 //
 
-#ifndef WIN32
-#include <unistd.h>
-#endif
-#include <stdio.h>
-#include <time.h>
-#include "sim.h"
 #include "simglb.h"
 
 int op_cb_handler(), op_dd_handler();
@@ -56,14 +51,9 @@ static int op_nop() {
 
 // HALT
 static int op_halt() {
-  if (break_flag) {
-    cpu_error = OPHALT;
-    cpu_state = STOPPED;
-  } else {
-    while (int_type == 0) {
-      delay(10);
-      R += 99999;
-    }
+  while (int_type == 0) {
+    cpu_halt();
+    R += 99999;
   }
   return 0;
 }
@@ -142,17 +132,13 @@ static int op_di() {
 
 // IN A,(n)
 static int op_in() {
-  BYTE io_in();
-
-  A = io_in(*PC++);
+  A = cpu_in(*PC++);
   return 11;
 }
 
 // OUT (n),A
 static int op_out() {
-  BYTE io_out();
-
-  io_out(*PC++, A);
+  cpu_out(*PC++, A);
   return 11;
 }
 
@@ -699,7 +685,7 @@ static int op_inchl() {
 // INC SP
 static int op_incsp() {
   STACK++;
-#ifdef WANT_SPC
+#ifdef ENABLE_SPC
   if (STACK > ram + 65535) STACK = ram;
 #endif
   return 6;
@@ -729,7 +715,7 @@ static int op_dechl() {
 // DEC SP
 static int op_decsp() {
   STACK--;
-#ifdef WANT_SPC
+#ifdef ENABLE_SPC
   if (STACK < ram) STACK = ram + 65535;
 #endif
   return 6;
@@ -2671,8 +2657,9 @@ static int op_rst38() {
 // by one. The opcode is used as an index to an array with function pointers
 // that execute a function which emulates this Z80 opcode.
 void cpu() {
-  static int (*op_sim[256])() = {
+  int t;
 
+  static int (*op_sim[256])() = {
     op_nop,        /* 0x00 */
     op_ldbcnn,     /* 0x01 */
     op_ldbca,      /* 0x02 */
@@ -2931,10 +2918,6 @@ void cpu() {
     op_rst38       /* 0xff */
   };
 
-#ifdef WANT_TIM
-  int t;
-#endif
-
   do {
 
 #ifdef HISIZE
@@ -2955,7 +2938,7 @@ void cpu() {
     }
 #endif
 
-#ifdef WANT_TIM
+#ifdef ENABLE_TIM
     // Check for start address of runtime measurement.
     if (PC == t_start && !t_flag) {
       t_flag = 1; /* switch measurement on */
@@ -2963,7 +2946,7 @@ void cpu() {
     }
 #endif
 
-#ifdef WANT_INT
+#ifdef ENABLE_INT
     // CPU interrupt handling.
     if (int_type) {
       switch (int_type) {
@@ -3012,16 +2995,9 @@ void cpu() {
 #endif
 
     // Execute next opcode.
-#ifdef WANT_TIM
     t = (*op_sim[*PC++])();
-    if (f_flag) {
-      // Adjust CPU speed.
-    }
-#else
-    (*op_sim[*PC++])();
-#endif
 
-#ifdef WANT_PCC
+#ifdef ENABLE_PCC
     // Check for PC overrun.
     if (PC > ram + 65535) PC = ram;
 #endif
@@ -3030,7 +3006,7 @@ void cpu() {
     R++;
     cpu_poll();
 
-#ifdef WANT_TIM
+#ifdef ENABLE_TIM
     // Perform runtime measurement.
     if (t_flag) {
       // Add T-states for this opcode.
@@ -3039,7 +3015,6 @@ void cpu() {
       if (PC == t_end) t_flag = 0;
     }
 #endif
-
   } while (cpu_state);
 }
 

@@ -9,8 +9,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "sim.h"
+
 #include "simglb.h"
+#include "sim.h"
 
 #define W(x) x
 #define LL(x)

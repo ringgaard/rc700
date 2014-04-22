@@ -13,8 +13,9 @@
 #include <string.h>
 #include <locale.h>
 #include <curses.h>
-#include "sim.h"
+
 #include "simglb.h"
+#include "sim.h"
 
 #define L(x)
 

@@ -2,9 +2,12 @@
 // Z80SIM  -  a Z80-CPU simulator
 //
 // Copyright (C) 1987-2006 by Udo Munk
+// Modified for RC700 simulator by Michael Ringgaard
+//
+// CPU state.
 //
 
-#include "sim.h"
+#include "simglb.h"
 
 //
 //  CPU registers.
@@ -35,10 +38,10 @@ BYTE IFF;
 long R;       
 
 //
-// RAM memory.
+// 64K RAM memory.
 //
 
-BYTE ram[65536];   // 64KB RAM
+BYTE ram[65536];
 
 //
 // Trace history.
@@ -63,24 +66,12 @@ int sb_next;
 // Runtime measurement.
 //
 
-#ifdef WANT_TIM
+#ifdef ENABLE_TIM
 long t_states;                // Number of counted T states.
 int t_flag;
 BYTE *t_start = ram + 65535;  // Start address for measurement.
 BYTE *t_end = ram + 65535;    // End address for measurement.
 #endif
-
-//
-// Simulator control flags.
-//
-
-int s_flag;
-int l_flag;
-int m_flag;
-int x_flag;
-int i_flag = 1;
-int f_flag;
-int break_flag = 0; // 1 = break at HALT, 0 = execute HALT
 
 //
 // Simulator state.

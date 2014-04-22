@@ -2,8 +2,9 @@
 // Z80SIM  -  a Z80-CPU simulator
 //
 // Copyright (C) 1987-2006 by Udo Munk
+// Modified for RC700 simulator by Michael Ringgaard
 //
-// ICE-type user interface for debugging Z80 programs on a host system.
+// ICE-type monitor for debugging Z80 programs on a host system.
 
 #ifndef WIN32
 #include <unistd.h>
@@ -14,10 +15,12 @@
 #include <memory.h>
 #include <ctype.h>
 #include <signal.h>
-#include "sim.h"
+
 #include "simglb.h"
 
-void disass(unsigned char **, int);
+#define CMDLEN     80    // Length of command buffers etc.
+
+void disasm(unsigned char **p, int adr);
 void dump_screen();
 
 BYTE *wrk_ram;     // Workpointer into memory for dumps etc.
@@ -167,7 +170,7 @@ static void do_step() {
   print_head();
   print_reg();
   p = PC;
-  disass(&p, p - ram);
+  disasm(&p, p - ram);
 }
 
 // Execute several steps with trace output.
@@ -244,7 +247,7 @@ static void do_dump(char *s) {
   }
 }
 
-// Disassembler.
+// Disassemble.
 static void do_list(char *s) {
   int i;
 
@@ -253,7 +256,7 @@ static void do_list(char *s) {
 
   for (i = 0; i < 10; i++) {
     printf("%04x - ", (unsigned int)(wrk_ram - ram));
-    disass(&wrk_ram, wrk_ram - ram);
+    disasm(&wrk_ram, wrk_ram - ram);
     if (wrk_ram > ram + 65535) wrk_ram = ram;
   }
 }
@@ -338,13 +341,12 @@ static void do_move(char *s) {
 static void do_port(char *s) {
   BYTE port;
   char nv[CMDLEN];
-  extern BYTE io_out(), io_in();
 
   while (isspace(*s)) s++;
   port = exatoi(s);
-  printf("%02x = %02x : ", port, io_in(port));
+  printf("%02x = %02x : ", port, cpu_in(port));
   fgets(nv, sizeof(nv), stdin);
-  if (isxdigit(*nv)) io_out(port, (BYTE) exatoi(nv));
+  if (isxdigit(*nv)) cpu_out(port, (BYTE) exatoi(nv));
 }
 
 // Register modify.
@@ -507,14 +509,9 @@ static void do_reg(char *s) {
 static void do_break(char *s) {
 #ifndef SBSIZE
   puts("Sorry, no breakpoints available");
-  puts("Please recompile with SBSIZE defined in sim.h");
+  puts("Please recompile with SBSIZE defined");
 #else
   int i;
-
-  if (!break_flag) {
-    puts("Can't use softbreaks with -h option.");
-    return;
-  }
 
   if (*s == '\n' || *s == '\0') {
     puts("No Addr Pass  Counter");
@@ -616,9 +613,9 @@ static void do_hist(char *s) {
 
 // Runtime measurement by counting the executed T states.
 static void do_count(char *s) {
-#ifndef WANT_TIM
+#ifndef ENABLE_TIM
   puts("Sorry, no t-state count available");
-  puts("Please recompile with WANT_TIM defined in sim.h");
+  puts("Please recompile with ENABLE_TIM defined in sim.h");
 #else
   while (isspace(*s)) s++;
   if (*s == '\0') {
@@ -701,7 +698,6 @@ static void do_clock() {
 static void do_show() {
   int i;
 
-  printf("Release: %s\n", RELEASE);
 #ifdef HISIZE
   i = HISIZE;
 #else
@@ -714,19 +710,19 @@ static void do_show() {
   i = 0;
 #endif
   printf("No. of software breakpoints: %d\n", i);
-#ifdef WANT_SPC
+#ifdef ENABLE_SPC
   i = 1;
 #else
   i = 0;
 #endif
-  printf("Stackpointer turn around %schecked\n", i ? "" : "not ");
-#ifdef WANT_PCC
+  printf("Stackpointer overflow %schecked\n", i ? "" : "not ");
+#ifdef ENABLE_PCC
   i = 1;
 #else
   i = 0;
 #endif
-  printf("Programcounter turn around %schecked\n", i ? "" : "not ");
-#ifdef WANT_TIM
+  printf("Program counter overflow %schecked\n", i ? "" : "not ");
+#ifdef ENABLE_TIM
   i = 1;
 #else
   i = 0;
@@ -826,7 +822,7 @@ static void do_help() {
   puts("b[no] c                   clear soft breakpoint");
   puts("h [address]               show history");
   puts("h c                       clear history");
-  puts("z start,stop              set trigger adr for t-state count");
+  puts("z start,stop              set trigger address for t-state count");
   puts("z                         show t-state count");
   puts("c                         measure clock frequency");
   puts("s                         show settings");
@@ -838,21 +834,15 @@ static void do_help() {
 void mon() {
   int eoj = 1;
   char cmd[CMDLEN];
-  char xfn[CMDLEN];
   char *p;
 
   wrk_ram = ram;
-  if (x_flag) {
-    if (do_getfile(xfn) == 0) do_go("");
-  }
-
   while (eoj) {
-next:
     printf(">>> ");
     fflush(stdout);
     if (fgets(cmd, CMDLEN, stdin) == NULL) {
       putchar('\n');
-      goto next;
+      continue;
     }
 
     for (p = cmd; *p; p++) {
@@ -938,7 +928,7 @@ next:
         break;
 
       default:
-        puts("what??");
+        puts("???");
         break;
     }
   }

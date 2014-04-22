@@ -15,8 +15,9 @@
 #include <stdint.h>
 #include <SDL/SDL.h>
 #endif
-#include "sim.h"
+
 #include "simglb.h"
+#include "sim.h"
 
 #define L(x)
 
@@ -235,14 +236,35 @@ int rcterm_keypressed() {
     case SDL_KEYDOWN:
       sym = event.key.keysym.sym;
       switch (sym) {
-        case SDLK_UP: return 0x1A;
-        case SDLK_DOWN: return 0x0A;
-        case SDLK_LEFT: return 0x08;
-        case SDLK_RIGHT: return 0x18;
-        case SDLK_BACKSPACE: return 0x08;
-        case SDLK_ESCAPE: return 0x1B;
-        case SDLK_TAB: return '\t';
-        case SDLK_RETURN: return '\r';
+        case SDLK_UP: 
+          return 0x1A;
+
+        case SDLK_DOWN: 
+          return 0x0A;
+
+        case SDLK_LEFT: 
+          return 0x08;
+
+        case SDLK_RIGHT: 
+          return 0x18;
+
+        case SDLK_BACKSPACE: 
+          return 0x08;
+
+        case SDLK_ESCAPE: 
+          return 0x1B;
+
+        case SDLK_TAB: 
+          return '\t';
+
+        case SDLK_RETURN: 
+          return '\r';
+
+        case SDLK_F10:
+          cpu_error = USERINT;
+          cpu_state = STOPPED;
+          return -1;
+
         default:
           code = event.key.keysym.unicode;
           switch (code) {

@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "sim.h"
+
+#include "simglb.h"
 #include "disk.h"
 
 //#define DEBUG_DISK

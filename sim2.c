@@ -2,11 +2,11 @@
 // Z80SIM  -  a Z80-CPU simulator
 //
 // Copyright (C) 1987-2006 by Udo Munk
+// Modified for RC700 simulator by Michael Ringgaard
 //
 // Emulation of multi byte opcodes starting with 0xcb
 //
 
-#include "sim.h"
 #include "simglb.h"
 
 // Trap for illegal 0xcb multi byte opcodes.
@@ -2160,7 +2160,6 @@ int op_cb_handler() {
     op_rrcc,      /* 0x09 */
     op_rrcd,      /* 0x0a */
     op_rrce,      /* 0x0b */
-
     op_rrch,      /* 0x0c */
     op_rrcl,      /* 0x0d */
     op_rrchl,     /* 0x0e */
@@ -2410,7 +2409,7 @@ int op_cb_handler() {
   // Execute next opcode
   t = (*op_cb[*PC++])();
 
-#ifdef WANT_PCC
+#ifdef ENABLE_PCC
   // Correct PC overrun
   if (PC > ram + 65535) PC = ram;
 #endif

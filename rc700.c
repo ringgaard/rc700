@@ -8,24 +8,25 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "sim.h"
-#include "simglb.h"
 #ifdef WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
 #endif
 
-void init_io();
-void exit_io();
-int poll_crt();
-int poll_pio();
+#include "simglb.h"
+#include "sim.h"
 
+// I/O handlers for all I/O ports.
+static struct port ports[256];
+
+// Mounted virtual floppy images.
 #define MAX_FLOPPIES 4
 
 char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 
+// Idle timing.
 int refresh_ticks = 100000;
 int active_delay  =   0; //5;
 int idle_delay    = 0; //200;
@@ -38,6 +39,39 @@ void delay(int ms) {
 #endif
 }
 
+// CPU port input trap.
+static BYTE in_trap(int dev) {
+  printf("io: unhandled I/O, input from port %02X\n", dev);
+  //cpu_error = IOTRAP;
+  //cpu_state = STOPPED;
+  return 0;
+}
+
+// CPU port output trap.
+static void out_trap(BYTE data, int dev) {
+  printf("io: unhandled I/O, output %02X to port %02X\n", data, dev);
+  //cpu_error = IOTRAP;
+  //cpu_state = STOPPED;
+}
+
+// Register handlers for CPU I/O port.
+void register_port(int adr, BYTE (*in)(int dev), void (*out)(BYTE data, int dev), int dev) {
+  ports[adr].in = in ? in : in_trap;
+  ports[adr].out = out ? out : out_trap;
+  ports[adr].dev = dev;
+}
+
+// CPU port input handler.
+BYTE cpu_in(BYTE adr) {
+  return (*ports[adr].in)(ports[adr].dev);
+}
+
+// CPU port output handler.
+void cpu_out(BYTE adr, BYTE data) {
+  (*ports[adr].out)(data, ports[adr].dev);
+}
+
+// CPU poll handler.
 void cpu_poll() {
   static int tick = 0;
   static int active = 1000;
@@ -57,12 +91,23 @@ void cpu_poll() {
   }
 }
 
+// CPU halt handler.
+void cpu_halt() {
+  delay(10);
+};
+
+// Initialize RC700 simulator.
 static void init_rc700() {
   int i;
 
   // Clear RAM and start executing at 0x000.
   PC = STACK = ram;
   memset(ram, 0, 65536);
+
+  // Setup trap handler for all unused I/O ports.
+  for (i = 0; i <= 255; i++) {
+    register_port(i, in_trap, out_trap, i);
+  }
 
   // Initialize peripheral devices.
   init_rom();
@@ -110,8 +155,8 @@ int main(int argc, char *argv[]) {
   char *s, *p;
   char *pn = argv[0];
 
-  printf("%s Release %s, %s\n", USR_COM, USR_REL, USR_CPR);
-  printf("Z80-SIM Release %s, %s\n\n", RELEASE, COPYR);
+  printf("RC700 Simulator version 1.0, Copyright (C) 2014 by Michael Ringgaard\n");
+  printf("Z80-SIM Release 1.9, Copyright (C) 1987-2006 by Udo Munk\n\n");
   fflush(stdout);
 
   // Get command line parameters.
@@ -157,31 +202,23 @@ int main(int argc, char *argv[]) {
 #endif
 
   // Initialize simulator.
-  init_io();
   init_rc700();
+  rcterm_init();
 
   // Run simulator.
   if (suspend) {
     mon();
-    rcterm_init();
-    cpu();
-    rcterm_exit();
   } else if (monitor) {
-    rcterm_init();
     cpu_state = CONTIN_RUN;
     cpu_error = NONE;
     cpu();
-    rcterm_exit();
     mon();
   } else {
-    rcterm_init();
     cpu_state = CONTIN_RUN;
     cpu_error = NONE;
     cpu();
-    rcterm_exit();
   }
-
-  exit_io();
+  rcterm_exit();
 
   //dump_ram("core.bin");
 

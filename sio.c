@@ -11,8 +11,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "sim.h"
+
 #include "simglb.h"
+#include "sim.h"
 
 #define L(x)
 #define LL(x)

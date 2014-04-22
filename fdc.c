@@ -9,8 +9,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sim.h"
+
 #include "simglb.h"
+#include "sim.h"
 #include "disk.h"
 
 #define L(x)
