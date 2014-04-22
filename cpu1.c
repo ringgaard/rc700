@@ -5,7 +5,7 @@
 // Modified for RC700 simulator by Michael Ringgaard
 //
 
-#include "simglb.h"
+#include "cpu.h"
 
 int op_cb_handler(), op_dd_handler();
 int op_ed_handler(), op_fd_handler();
@@ -2025,6 +2025,7 @@ static int op_pushde() {
   CHECK_STACK_UNDERRUN();
   *--STACK = D;
   CHECK_STACK_UNDERRUN();
+
   *--STACK = E;
   return 11;
 }

@@ -14,8 +14,7 @@
 #include <locale.h>
 #include <curses.h>
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 #define L(x)
 

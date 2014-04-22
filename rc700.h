@@ -4,6 +4,8 @@
 // Copyright (C) 2012 by Michael Ringgaard
 //
 
+#include "cpu.h"
+
 // fifo.c
 
 #define FIFOSIZE        128

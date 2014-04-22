@@ -10,8 +10,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 #define L(x) x
 #define LL(x)

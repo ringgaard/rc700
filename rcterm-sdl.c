@@ -16,8 +16,7 @@
 #include <SDL/SDL.h>
 #endif
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 #define L(x)
 

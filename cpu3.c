@@ -6,7 +6,7 @@
 //
 // Emulation of multi byte opcodes starting with 0xdd
 
-#include "simglb.h"
+#include "cpu.h"
 
 int op_ddcb_handler();
 
@@ -392,6 +392,7 @@ static int op_ldxdl() {
 
 // LD (IX+d),n
 static int op_ldxdn() {
+
   int d;
 
   d = (char) *PC++;

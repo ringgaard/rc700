@@ -9,8 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 int fifo_put(struct fifo *f, BYTE data) {
   if (f->count >= FIFOSIZE) return 0;

@@ -9,8 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 #ifdef WIN32
 #include "winbootrom"

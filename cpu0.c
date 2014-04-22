@@ -7,7 +7,7 @@
 // CPU state.
 //
 
-#include "simglb.h"
+#include "cpu.h"
 
 //
 //  CPU registers.

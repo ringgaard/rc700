@@ -14,8 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 #define L(x)
 #define LL(x)

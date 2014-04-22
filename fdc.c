@@ -10,8 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 #include "disk.h"
 
 #define L(x)

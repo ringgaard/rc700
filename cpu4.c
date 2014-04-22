@@ -7,7 +7,7 @@
 // Emulation of multi byte opcodes starting with 0xed
 //
 
-#include "simglb.h"
+#include "cpu.h"
 
 void genintr();
 

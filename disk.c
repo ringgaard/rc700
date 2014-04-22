@@ -11,7 +11,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "simglb.h"
+#include "cpu.h"
 #include "disk.h"
 
 //#define DEBUG_DISK

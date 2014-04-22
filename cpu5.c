@@ -7,7 +7,7 @@
 // Emulation of multi byte opcodes starting with 0xfd
 //
 
-#include "simglb.h"
+#include "cpu.h"
 
 int op_fdcb_handler();
 

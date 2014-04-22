@@ -14,8 +14,7 @@
 #include <unistd.h>
 #endif
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 // I/O handlers for all I/O ports.
 static struct port ports[256];

@@ -16,7 +16,7 @@
 #include <ctype.h>
 #include <signal.h>
 
-#include "simglb.h"
+#include "cpu.h"
 
 #define CMDLEN     80    // Length of command buffers etc.
 

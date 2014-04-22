@@ -7,7 +7,7 @@
 // Emulation of multi byte opcodes starting with 0xdd 0xcb
 //
 
-#include "simglb.h"
+#include "cpu.h"
 
 // Trap for illegal 0xdd 0xcb multi byte opcodes.
 static int trap_ddcb() {
@@ -362,6 +362,7 @@ int op_ddcb_handler() {
     trap_ddcb,      /* 0x37 */
     trap_ddcb,      /* 0x38 */
     trap_ddcb,      /* 0x39 */
+
     trap_ddcb,      /* 0x3a */
     trap_ddcb,      /* 0x3b */
     trap_ddcb,      /* 0x3c */

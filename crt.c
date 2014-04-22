@@ -10,8 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "simglb.h"
-#include "sim.h"
+#include "rc700.h"
 
 #define W(x) x
 #define LL(x)

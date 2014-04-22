@@ -7,7 +7,7 @@
 // Emulation of multi byte opcodes starting with 0xcb
 //
 
-#include "simglb.h"
+#include "cpu.h"
 
 // Trap for illegal 0xcb multi byte opcodes.
 static int trap_cb() {
