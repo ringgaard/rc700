@@ -120,7 +120,7 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
       if (ch & ATTR_MODE) {
         if ((ch & ATTR_SPECIAL) == ATTR_SPECIAL) {
           switch (ch) {
-            case  ATTR_CLREOL: clreol = 1; break;
+            case ATTR_CLREOL: clreol = 1; break;
             case ATTR_CLREOS: clreos = 1; break;
           }
         } else {
@@ -228,36 +228,62 @@ int rcterm_gotoxy(int col, int row) {
 int rcterm_keypressed() {
   SDL_Event event;
   int sym;
+  int shift;
   int code;
 
   if (!SDL_PollEvent(&event)) return -1;
   switch (event.type) {
     case SDL_KEYDOWN:
       sym = event.key.keysym.sym;
+      shift = event.key.keysym.mod & KMOD_SHIFT;
       switch (sym) {
         case SDLK_UP: 
-          return 0x1A;
+          return shift ? 0x9A : 0x1A;
 
         case SDLK_DOWN: 
-          return 0x0A;
+          return shift ? 0x8A : 0x0A;
 
-        case SDLK_LEFT: 
-          return 0x08;
+        case SDLK_LEFT:
+          return shift ? 0x88 : 0x08;
 
         case SDLK_RIGHT: 
-          return 0x18;
+          return shift ? 0x98 : 0x18;
 
-        case SDLK_BACKSPACE: 
-          return 0x08;
+        case SDLK_BACKSPACE: // Mapped to left/rubout
+          return shift ? 0x7F : 0x08;
+
+        case SDLK_DELETE: // Mapped to clear
+          return shift ? 0x8C : 0x0C;
+
+        case SDLK_HOME: // Mapped to reset
+          return 0x81;
 
         case SDLK_ESCAPE: 
-          return 0x1B;
+          return shift ? 0x9B : 0x1B;
 
         case SDLK_TAB: 
-          return '\t';
+          return shift ? 0x05 : 0x09;
 
         case SDLK_RETURN: 
-          return '\r';
+          return shift ? 0x8D : 0x0D;
+
+        case SDLK_SPACE: 
+          return shift ? 0x0A : 0x20;
+   
+        case SDLK_F1: // Mapped to PA1
+          return shift ? 0x94 : 0x83;
+
+        case SDLK_F2: // Mapped to PA2
+          return shift ? 0x95 : 0x84;
+
+        case SDLK_F3: // Mapped to PA3
+          return shift ? 0x99 : 0x8B;
+
+        case SDLK_F4: // Mapped to PA4
+          return shift ? 0x9C : 0x8E;
+
+        case SDLK_F5: // Mapped to PA5
+          return shift ? 0x9E : 0x90;
 
         case SDLK_F10:
           cpu_error = USERINT;
@@ -273,6 +299,9 @@ int rcterm_keypressed() {
             case 0xE6: return 0x7B; // ae
             case 0xF8: return 0x7C; // oe
             case 0xE5: return 0x7D; // aa
+            case 0xE4: return 0x60; // a umlaut
+            case 0xF6: return 0x73; // o umlaut
+            case 0xFC: return 0x40; // u umlaut
             default: if (code > 0 && code <= 0x7F) return code;
           }
       }

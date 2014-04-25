@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "rc700.h"
 
@@ -48,16 +49,11 @@
 #define HEADS    6
 #define SECTORS  16
 
-typedef char sector[SECTSIZE];
-
-struct winchester_drive {
-  sector data[CYLS][HEADS][SECTORS];
-};
-
 struct winchester_disk_controller {
   BYTE status;
   BYTE reg[WDC_NUM_REGS];
-  struct winchester_drive *drive[MAX_DRIVES];
+  FILE *drive[MAX_DRIVES];
+  char buffer[SECTSIZE];
 };
 
 int sector_size[4] = {256, 512, 1024, 128};
@@ -89,7 +85,7 @@ BYTE wdc_status(int reg) {
 }
 
 void wdc_read() {
-  struct winchester_drive *drive;
+  FILE *drive;
   WORD adr = 0;
   WORD cnt = 0;
   
@@ -118,7 +114,17 @@ void wdc_read() {
     if (c < CYLS && h < HEADS && s < SECTORS) {
       // Read sector from disk.
       L(printf("fdc: read sector C=%d,H=%d,S=%d: read %d bytes to %04Xs\n", c, s, s, size, dma_address(0)));
-      dma_transfer(0, drive->data[c][h][s], size);
+      if (fseek(drive, ((((c * HEADS) + h) * SECTORS + s) * SECTSIZE), SEEK_SET) == -1) {
+        W(printf("wdc%d: read seek error %d sector C=%d,H=%d,S=%d\n", d, errno, c, h, s));
+        wdc.status |= WDC_STAT_ERROR;
+        break;
+      }
+      if (fread(wdc.buffer, 1, SECTSIZE, drive) != SECTSIZE) {
+        W(printf("wdc%d: read error %d sector C=%d,H=%d,S=%d\n", d, errno, c, h, s));
+        wdc.status |= WDC_STAT_ERROR;
+        break;
+      }
+      dma_transfer(0, wdc.buffer, size);
     } else {
       // Sector not found.
       wdc.status |= WDC_STAT_ERROR;
@@ -133,7 +139,7 @@ void wdc_read() {
 }
 
 void wdc_write() {
-  struct winchester_drive *drive;
+  FILE *drive;
   WORD adr;
   WORD cnt;
 
@@ -163,10 +169,20 @@ void wdc_write() {
       cnt = size;
       adr = dma_fetch(0, &cnt);
 
-      LL(printf("wdc%d: write sector C=%d,H=%d,S=%d: write %d bytes to %04X\n", d, c, h, s, cnt, adr));
-      
+      LL(printf("wdc%d: write sector C=%d,H=%d,S=%d: write %d bytes from %04X\n", d, c, h, s, cnt, adr));
+    
       // Write data to disk.
-      memcpy(drive->data[c][h][s], ram + adr, cnt);      
+      memcpy(wdc.buffer, ram + adr, cnt);
+      if (fseek(drive, ((((c * HEADS) + h) * SECTORS + s) * SECTSIZE), SEEK_SET) == -1) {
+        W(printf("wdc%d: write seek error %d sector C=%d,H=%d,S=%d\n", d, errno, c, h, s));
+        wdc.status |= WDC_STAT_ERROR;
+        break;
+      }
+      if (fwrite(wdc.buffer, 1, SECTSIZE, drive) != SECTSIZE) {
+        W(printf("wdc%d: write error %d sector C=%d,H=%d,S=%d\n", d, errno, c, h, s));
+        wdc.status |= WDC_STAT_ERROR;
+        break;
+      }
     } else {
       // Sector not found.
       wdc.status |= WDC_STAT_ERROR;
@@ -231,8 +247,8 @@ void init_wdc() {
 
   memset(&wdc, 0, sizeof(struct winchester_disk_controller));
 
-  //wdc.drive[0] = malloc(sizeof(struct winchester_drive));
-  //wdc.status |= WDC_STAT_DRIVE_READY | WDC_STAT_SEEK_COMPLETE;
+  wdc.drive[0] = fopen("hd.img", "r+b");
+  wdc.status |= WDC_STAT_DRIVE_READY | WDC_STAT_SEEK_COMPLETE;
 
   register_port(0x60, wdc_data_in, wdc_data_out, 0);
   for (i = 0; i < WDC_NUM_REGS; ++i) {

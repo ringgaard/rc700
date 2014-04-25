@@ -6,11 +6,9 @@
 //
 
 #define ENABLE_INT  // Enable CPU interrupt handling
-
 //#define ENABLE_SPC  // Enable SP over-/underrun handling 0000<->FFFF
 //#define ENABLE_PCC  // Enable PC overrun handling FFFF->0000
 //#define ENABLE_TIM  // Enable runtime measurement
-
 //#define HISIZE  100 // Number of entrys in history
 //#define SBSIZE  4   // Number of software breakpoints
 
@@ -62,11 +60,11 @@ extern BYTE ram[];
 int cpu_state, cpu_error;
 int int_type, int_mode, int_vec;
 extern int int_chain[];
-float freq;
 
 // Pre-computed parity table.
 extern int parity[];
 
+// Stack overflow checking.
 #ifdef ENABLE_SPC
 #define CHECK_STACK_OVERRUN() if (STACK >= ram + 65536L) STACK = ram
 #define CHECK_STACK_UNDERRUN() if (STACK <= ram) STACK = ram + 65536L
@@ -121,7 +119,7 @@ int  t_flag;
 BYTE *t_start, *t_end;
 #endif
 
-// CPU simluator functions.
+// CPU simulator functions.
 void cpu();
 void interrupt(int vec, int priority);
 

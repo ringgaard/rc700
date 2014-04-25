@@ -113,6 +113,7 @@ int pio_poll() {
   int ch = rcterm_keypressed();
   if (ch != (ch & 0xFF)) return 0;
   c = ch;
+  L(printf("pio: key 0x%02x pressed\n", ch));
   pio_receive(0, &c, 1);
   return 1;
 }

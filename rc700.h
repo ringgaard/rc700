@@ -75,6 +75,7 @@ int poll_crt();
 // fdc.c
 
 void init_fdc();
+void fdc_floppy_motor(BYTE data, int dev);
 int fdc_mount_disk(int drive, char *imagefile);
 void fdc_flush_disk(int drive);
 

@@ -84,9 +84,6 @@ int int_mode;       // CPU interrupt mode (IM 0, IM 1, IM 2)
 int int_type;       // Interrupt type.
 int int_vec;        // Interrupt vector.
 
-float freq;         // CPU clock in usec.
-int clk_ctr = 0;    // Counter for generating ticks from the system clock.
-
 // Interrupt daisy chain for interrupt priority.
 int int_chain[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 

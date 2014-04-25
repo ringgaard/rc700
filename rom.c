@@ -29,8 +29,6 @@ BYTE sem_line = 0;
 //   0x80: Mini floppy (5 1/4")
 BYTE dip_switches = 0x80;
 
-void fdc_floppy_motor(BYTE data, int dev);
-
 BYTE dip_switch_in(int dev) {
   L(printf("switch: read %02X PC=%04X\n", dip_switches, PC - ram));
   return dip_switches;
