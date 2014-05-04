@@ -1636,6 +1636,7 @@ static int op_cpd() {
 static int op_cpe() {
   int i;
 
+
   ((E & 0xf) > (A & 0xf)) ? (F |= H_FLAG) : (F &= ~H_FLAG);
   (E > A) ? (F |= C_FLAG) : (F &= ~C_FLAG);
   i = (char) A - (char) E;
@@ -3005,7 +3006,7 @@ void cpu() {
 
     // Increment refresh register.
     R++;
-    cpu_poll();
+    cpu_poll(t);
 
 #ifdef ENABLE_TIM
     // Perform runtime measurement.

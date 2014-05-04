@@ -183,6 +183,7 @@ void wdc_write() {
         wdc.status |= WDC_STAT_ERROR;
         break;
       }
+      fflush(drive);
     } else {
       // Sector not found.
       wdc.status |= WDC_STAT_ERROR;
@@ -242,12 +243,15 @@ void wdc_command(BYTE data, int dev) {
   }
 }
 
+int wdc_mount_harddisk(int drive, char *imagefile) {
+  wdc.drive[drive] = fopen(imagefile, "r+b");
+  return wdc.drive[drive] != NULL;
+}
+
 void init_wdc() {
   int i;
 
   memset(&wdc, 0, sizeof(struct winchester_disk_controller));
-
-  wdc.drive[0] = fopen("hd.img", "r+b");
   wdc.status |= WDC_STAT_DRIVE_READY | WDC_STAT_SEEK_COMPLETE;
 
   register_port(0x60, wdc_data_in, wdc_data_out, 0);

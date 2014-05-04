@@ -126,6 +126,6 @@ void interrupt(int vec, int priority);
 // CPU simulation callbacks.
 BYTE cpu_in(BYTE adr);
 void cpu_out(BYTE adr, BYTE data);
-void cpu_poll();
+void cpu_poll(int cycles);
 void cpu_halt();
 

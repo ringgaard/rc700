@@ -14,9 +14,9 @@
 
 #include "rc700.h"
 
-#define L(x)
-#define LL(x)
-#define W(x)
+#define L(x) 
+#define LL(x) 
+#define W(x) 
 
 #define NUM_SIO_PORTS   2
 
@@ -39,6 +39,8 @@
 #define SIO_R0_RX_AVAIL              0x01  // Receive Character available
 #define SIO_R0_INT                   0x02  // Interrupt Pending
 #define SIO_R0_TX_PEND               0x04  // Transmit Buffer Empty
+#define SIO_R0_DCD                   0x08  // Data Carrier Detect
+#define SIO_R0_CTS                   0x20  // Clear To Send
 
 struct serial_port {
   BYTE wr[8];
@@ -72,7 +74,7 @@ void sio_receive(int dev, char *data, int size) {
 
 void sio_reset(int dev) {
   memset(&sio[dev], 0, sizeof(struct serial_port));
-  sio[dev].rr[0] |= SIO_R0_TX_PEND;
+  sio[dev].rr[0] |= SIO_R0_TX_PEND | SIO_R0_DCD | SIO_R0_CTS;
 }
 
 BYTE sio_data_in(int dev) {

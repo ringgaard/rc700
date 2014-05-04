@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <time.h>
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -19,17 +20,26 @@
 // I/O handlers for all I/O ports.
 static struct port ports[256];
 
-// Mounted virtual floppy images.
+// Mounted virtual disk images.
 #define MAX_FLOPPIES 4
 
 char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
+char *harddisk = NULL;
 
-// Idle timing.
-int refresh_ticks = 100000;
-int active_delay  =   0; //5;
-int idle_delay    = 0; //200;
+// Simulate a 4 Mhz Z80 CPU with 50 Hz screen refresh rate.
+#define CPU_CLOCK_FREQUENCY   4000000
+#define FRAMES_PER_SECOND     50
+#define CYCLES_PER_FRAME      (CPU_CLOCK_FREQUENCY / FRAMES_PER_SECOND)
+#define MILLISECS_PER_FRAME   (1000 / FRAMES_PER_SECOND)
 
+// Number of CPU cycles executed in current current frame.
+int quantum = 0; 
+
+// Milliseconds delay per frame taking simulation speed into account.
+int ms_per_frame = MILLISECS_PER_FRAME;
+
+// Delay in milliseconds.
 void delay(int ms) {
 #ifdef WIN32
   Sleep(ms);
@@ -70,23 +80,20 @@ void cpu_out(BYTE adr, BYTE data) {
   (*ports[adr].out)(data, ports[adr].dev);
 }
 
-// CPU poll handler.
-void cpu_poll() {
-  static int tick = 0;
-  static int active = 1000;
+// Set simulator speed in percent.
+void set_simulation_speed(int percent) {
+  ms_per_frame = MILLISECS_PER_FRAME * 100 / percent;
+  printf("speed: %d%%, %d ms/frame\n", percent, ms_per_frame);
+}
 
-  if (--tick > 0) return;
-  tick = refresh_ticks;
+// CPU poll handler.
+void cpu_poll(int cycles) {
+  quantum += cycles;
+  if (quantum < CYCLES_PER_FRAME) return;
 
   if (!pio_poll() && !crt_poll()) {
-    if (!active) {
-      delay(idle_delay);
-    } else {
-      --active;
-      delay(active_delay);
-    }
-  } else {
-    active = 1000;
+    delay(ms_per_frame);
+    quantum -= CYCLES_PER_FRAME;
   }
 }
 
@@ -123,6 +130,11 @@ static void init_rc700() {
   for (i = 0; i < num_floppies; ++i) {
     fdc_mount_disk(i, floppy[i]);
   }
+
+  // Mount hard disks image.
+  if (harddisk) {
+    wdc_mount_harddisk(0, harddisk);
+  }
 }
 
 static void simbreak(int sig) {
@@ -143,6 +155,14 @@ static void dump_ram(char *core) {
   fclose(f);
 }
 
+void usage(char *pgm) {
+  printf("usage:\t%s [OPTIONS] [IMD FILES...]\n", pgm);
+  printf("-monitor     (exit into monitor)\n");
+  printf("-suspend     (start suspended)\n");
+  printf("-speed PCT   (set simulation speed)\n");
+  printf("-hd IMG      (mount hard disk)\n");
+}
+
 int main(int argc, char *argv[]) {
 #ifndef WIN32
   static struct sigaction sa;
@@ -161,30 +181,17 @@ int main(int argc, char *argv[]) {
   // Get command line parameters.
   for (i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
-      char *s = argv[i] + 1;
-      while (s && *s) {
-        switch (*s) {
-          case 'm':
-            monitor = 1;
-            s++;
-            break;
-
-          case 's':
-            suspend = 1;
-            s++;
-            break;
-
-          case '?':
-            goto usage;
-
-          default:
-            printf("illegal option %c\n", *s);
-          usage:  
-            printf("usage:\t%s -ms [IMD FILES...]\n", argv[0]);
-            printf("-m (exit into monitor)\n");
-            printf("-s (start suspended)\n");
-            exit(1);
-        }
+      if (strcmp(argv[i], "-monitor") == 0) {
+        monitor = 1;
+      } else if (strcmp(argv[i], "-suspend") == 0) {
+        suspend = 1;
+      } else if (strcmp(argv[i], "-speed") == 0 && i + 1 < argc) {
+        set_simulation_speed(atoi(argv[i++ + 1]));
+      } else if (strcmp(argv[i], "-hd") == 0 && i + 1 < argc) {
+        harddisk = argv[i++ + 1];
+      } else {
+        usage(argv[0]);
+        exit(1);
       }
     } else {
       if (num_floppies == MAX_FLOPPIES) {

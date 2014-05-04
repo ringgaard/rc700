@@ -71,6 +71,7 @@ void dma_transfer_done(int channel);
 
 void init_crt();
 int poll_crt();
+void dump_screen();
 
 // fdc.c
 
@@ -79,13 +80,21 @@ void fdc_floppy_motor(BYTE data, int dev);
 int fdc_mount_disk(int drive, char *imagefile);
 void fdc_flush_disk(int drive);
 
+// wdc.c
+
+int wdc_mount_harddisk(int drive, char *imagefile);
+
 // ftp.c
 
 void init_ftp();
 
-// disasm.c
+// monitor.c
 
 void mon();
+
+// disasm.c
+
+void disasm(unsigned char **p, int adr);
 
 // rcterm-*.c
 

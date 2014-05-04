@@ -17,14 +17,11 @@
 #include <signal.h>
 
 #include "cpu.h"
+#include "rc700.h"
 
 #define CMDLEN     80    // Length of command buffers etc.
 
-void disasm(unsigned char **p, int adr);
-void dump_screen();
-int fdc_mount_disk(int drive, char *imagefile);
-
-BYTE *wrk_ram;     // Workpointer into memory for dumps etc.
+BYTE *wrk_ram;           // Workpointer into memory for dumps etc.
 
 // Parse hexadecimal number.
 int exatoi(char *str) {
@@ -823,7 +820,7 @@ static int do_mount(char *s) {
     drive = 0;
   }
 
-  fdc_mount_disk(drive & 3, fn);
+  return fdc_mount_disk(drive & 3, fn);
 }
 
 // Output help text.
