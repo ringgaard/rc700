@@ -50,7 +50,7 @@ void delay(int ms) {
 
 // CPU port input trap.
 static BYTE in_trap(int dev) {
-  printf("io: unhandled I/O, input from port %02X\n", dev);
+  //printf("io: unhandled I/O, input from port %02X\n", dev);
   //cpu_error = IOTRAP;
   //cpu_state = STOPPED;
   return 0;
@@ -58,7 +58,7 @@ static BYTE in_trap(int dev) {
 
 // CPU port output trap.
 static void out_trap(BYTE data, int dev) {
-  printf("io: unhandled I/O, output %02X to port %02X\n", data, dev);
+  //printf("io: unhandled I/O, output %02X to port %02X\n", data, dev);
   //cpu_error = IOTRAP;
   //cpu_state = STOPPED;
 }

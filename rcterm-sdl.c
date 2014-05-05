@@ -56,6 +56,7 @@
 #define ATTR_CLREOL    0xF0
 #define ATTR_CLREOS    0xF2
 
+// RC752 amber colors.
 #define HI_COLOR 0xFFCC66
 #define FG_COLOR 0xCC9933
 #define BG_COLOR 0x552200
@@ -109,13 +110,13 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
   mode = 0;
   clreos = 0;
   uline = 10 - under_line;
-  for (col = 0; col < 25; ++col) {
+  for (row = 0; row < 25; ++row) {
     // Set up pointers into the character cell ROM.
     c = cell;
     a = attr;
     clreol = clreos;
     charmem = mode & ATTR_SEMI ? charram : charrom;
-    for (row = 0; row < 80; ++row) {
+    for (col = 0; col < 80; ++col) {
       ch = *text++;
       if (ch & ATTR_MODE) {
         if ((ch & ATTR_SPECIAL) == ATTR_SPECIAL) {
@@ -134,7 +135,7 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
         *c++ = blank;
       } else {
         m = mode;
-        if (row == cur_x && col == cur_y) {
+        if (col == cur_x && row == cur_y) {
           m ^= (cursor_type & 0x01) ? ATTR_UNDERLINE : ATTR_REVERSE;
         }
         *a++ = m;
@@ -154,10 +155,10 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
         mask = 0;
         for (grp = 4; grp > 0; --grp) {
           pixels = *(*c++)++;
-          mode = *a++;
-          if (mode) {
-            if (mode & ATTR_UNDERLINE && line == uline) pixels = 0x7F;
-            if (mode & ATTR_REVERSE) pixels ^= 0x7F;
+          m = *a++;
+          if (m) {
+            if (m & ATTR_UNDERLINE && line == uline) pixels = 0x7F;
+            if (m & ATTR_REVERSE) pixels ^= 0x7F;
           }
           mask = (mask >> 7) | (pixels << 21);
         }
@@ -173,7 +174,7 @@ void draw_screen(pixel_t *bitmap, unsigned char *text) {
           mask >>= 2;
         }
       }
-      
+
       // Duplicate previous pixel line.
       memcpy(bitmap, begin, 40 * 3 * 7 * 4);
       bitmap += 40 * 3 * 7;
