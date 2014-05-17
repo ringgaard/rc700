@@ -30,12 +30,12 @@ BYTE sem_line = 0;
 BYTE dip_switches = 0x80;
 
 BYTE dip_switch_in(int dev) {
-  L(printf("switch: read %02X PC=%04X\n", dip_switches, PC - ram));
+  L(printf("switch: read %02X PC=%04X\n", dip_switches, (WORD) (PC - ram)));
   return dip_switches;
 }
 
 void speaker_out(BYTE data, int dev) {
-  L(printf("beep: value %x\n", data));
+  printf("beep: value %x\n", data);
 }
 
 void disable_prom(BYTE data, int dev) {
@@ -61,7 +61,7 @@ void sem_data_out(BYTE data, int dev) {
 void init_rom() {
   int i;
 
-  // Initialize memory with contents of boot prom.
+  // Initialize memory with contents of boot ROM.
   for (i = 0; i < ROM_SIZE; ++i) ram[i] = bootrom[i];
 
   register_port(0x14, dip_switch_in, fdc_floppy_motor, 0);

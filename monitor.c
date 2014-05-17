@@ -23,17 +23,20 @@
 
 BYTE *wrk_ram;           // Workpointer into memory for dumps etc.
 
+// Parse hexadecimal digit.
+int hexdigit(char ch) {
+  if (ch >= '0' && ch <= '9') return ch - '0';
+  if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+  if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+  return -1;
+}
+
 // Parse hexadecimal number.
 int exatoi(char *str) {
+  int digit;
   int num = 0;
-  while (isxdigit(*str)) {
-    num *= 16;
-    if (*str <= '9') {
-      num += *str - '0';
-    } else {
-      num += toupper(*str) - '7';
-    }
-    str++;
+  while ((digit = hexdigit(*str++)) != -1) {
+    num = num * 16 + digit;
   }
   return num;
 }
@@ -734,7 +737,7 @@ static void do_show() {
 // lh = load address high
 static int load_mos(int fd, char *fn) {
   BYTE fileb[3];
-  unsigned count, readed;
+  unsigned count, n;
   int rc = 0;
 
   // Read load address.
@@ -745,28 +748,113 @@ static int load_mos(int fd, char *fn) {
     wrk_ram = ram + (fileb[2] * 256 + fileb[1]);
   }
   count = ram + 65535 - wrk_ram;
-  if ((readed = read(fd, (char *) wrk_ram, count)) == count) {
+  if ((n = read(fd, (char *) wrk_ram, count)) == count) {
     puts("Too much to load, stopped at 0xffff");
     rc = 1;
   }
-  close(fd);
   printf("Loader statistics for file %s:\n", fn);
   printf("START : %04x\n", (unsigned int)(wrk_ram - ram));
-  printf("END   : %04x\n", (unsigned int)(wrk_ram - ram + readed - 1));
-  printf("LOADED: %04x\n", readed);
+  printf("END   : %04x\n", (unsigned int)(wrk_ram - ram + n - 1));
+  printf("LOADED: %04x\n", n);
   PC = wrk_ram;
   return rc;
 }
  
+// Loader for Intel hex files.
+// Each line has the following format: 
+//   :llaaaatt[dd...]cc
+// 
+// ll   length of record
+// aaaa address for data
+// tt   record type (0=data, 1=eof)
+// dd   data bytes
+// cc   checksum
+static int load_intel(int fd, char *fn) {
+  int type, count, addr;
+  BYTE byte;
+  BYTE rec[1024];
+  int reclen;
+  BYTE checksum;
+  char ch;
+  int hi, lo, i;
+  int start = 0xFFFF;
+  int end = 0;
+  int total = 0;
+  int eof = 0;
+
+  eof = 0;
+  while (!eof) {
+    // Read next line.
+    if (read(fd, &ch, 1) != 1) break;
+    
+    // Ignore lines not starting with colon.
+    if (ch == ':') {
+      reclen = 0;
+      checksum = 0;
+      while (reclen < sizeof(rec)) {
+        // Read next byte as two hex digits.
+        if (read(fd, &ch, 1) != 1 || (hi = hexdigit(ch)) < 0) break;
+        if (read(fd, &ch, 1) != 1 || (lo = hexdigit(ch)) < 0) break;
+        byte = hi * 16 + lo;
+        rec[reclen++] = byte;
+        checksum += byte;
+      }
+
+      if (reclen < 5) {
+        puts("Invalid Intel hex format, short line");
+        return 1;
+      }
+
+      count = rec[0];
+      addr = rec[1] * 256 + rec[2];
+      type = rec[3];
+      //printf("type: %02X addr: %04X count: %02X\n", type, addr, count);
+
+      if (checksum != 0) {
+        printf("Invalid Intel hex format, checksum error (%02X)\n", checksum);
+        return 1;
+      }
+
+      if (type == 1) {
+        PC = ram + addr;
+        break;
+      }
+
+      if (type == 0) {
+        if (count != reclen - 5) {
+          puts("Invalid Intel hex format, incorrect number of data bytes");
+          return 1;
+        }
+        if (count > 0) {
+          wrk_ram = ram + addr;
+          for (i = 0; i < count; ++i) *wrk_ram++ = rec[i + 4];
+          if (addr < start) start = addr;
+          if (addr + count > end) end = addr + count;
+          total += count;
+        }
+      }
+    }
+
+    // Read until end of line.
+    while (!eof && ch != '\n') {
+      if (read(fd, &ch, 1) != 1 || ch == 0x1a) eof = 1;
+    }
+  }
+  printf("Loaded %d bytes (%04X-%04X) from %s (PC=%04X)\n", total, start, end, fn, (WORD) (PC - ram));
+  return 0;
+}
+
 // Read a file into the memory of the emulated CPU.
 // The following file formats are supported:
 //
-// binary images with Mostek header
+// - binary images with Mostek header
+// - Intel hex format
 static int do_getfile(char *s) {
   char fn[CMDLEN];
   BYTE fileb[5];
   char *pfn = fn;
   int fd;
+  int rc;
 
   while (isspace(*s)) s++;
   while (*s != ',' && *s != '\n' && *s != '\0') *pfn++ = *s++;
@@ -789,16 +877,20 @@ static int do_getfile(char *s) {
 
   // Read first 5 bytes of file.
   read(fd, (char *) fileb, 5);
+  lseek(fd, 0l, 0);
 
   if (*fileb == (BYTE) 0xff) {
     // Mostek header.
-    lseek(fd, 0l, 0);
-    return load_mos(fd, fn);
+    rc = load_mos(fd, fn);
+  } else if (*fileb == ':') {
+    // Intel hex header.
+    rc = load_intel(fd, fn);
   } else {
-    printf("unkown format, can't load file %s\n", fn);
-    close(fd);
-    return 1;
+    printf("unknown format, can't load file %s\n", fn);
+    rc = 1;
   }
+  close(fd);
+  return rc;
 }
 
 static int do_mount(char *s) {
@@ -851,7 +943,7 @@ static void do_help() {
   puts("q                         quit");
 }
 
-// Monitor for z80 debugger.
+// Monitor for Z80 debugger.
 void mon() {
   int eoj = 1;
   char cmd[CMDLEN];

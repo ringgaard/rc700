@@ -88,18 +88,26 @@ void set_simulation_speed(int percent) {
 
 // CPU poll handler.
 void cpu_poll(int cycles) {
+  int overhead;
+  clock_t t;
+
   quantum += cycles;
   if (quantum < CYCLES_PER_FRAME) return;
 
-  if (!pio_poll() && !crt_poll()) {
-    delay(ms_per_frame);
-    quantum -= CYCLES_PER_FRAME;
+  t = clock();
+  if (pio_poll() || crt_poll()) {
+    overhead = (clock() - t) * 1000 / CLOCKS_PER_SEC;
+  } else {
+    overhead = 0;
   }
+
+  if (overhead < ms_per_frame) delay(ms_per_frame - overhead);
+  quantum -= CYCLES_PER_FRAME;
 }
 
 // CPU halt handler.
 void cpu_halt() {
-  delay(10);
+  delay(ms_per_frame);
 };
 
 // Initialize RC700 simulator.

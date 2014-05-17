@@ -372,6 +372,8 @@ void fdc_execute_command() {
   switch (cmd) {
     case FDC_CMD_READ_TRACK:
       W(printf("fdc: read track, not implemented\n"));
+      fdc_read_sectors(drive);
+      intr = 1;
       break;
 
     case FDC_CMD_SPECIFY:

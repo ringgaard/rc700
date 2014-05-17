@@ -32,6 +32,9 @@ ana2imd: ana2imd.c disk.c disk.h sim.h
 imd2bin: imd2bin.c disk.c disk.h
 	$(CC) -o $@ imd2bin.c disk.c
 
+rom2hex: rom2hex.c
+	$(CC) -o $@ rom2hex.c
+
 cpmdisk: cpmdisk.c disk.c disk.h
 	$(CC) -o $@ cpmdisk.c disk.c
 

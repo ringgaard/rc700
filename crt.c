@@ -180,7 +180,7 @@ int crt_poll() {
     cnt3 = 0;
   }
 
-  LL(printf("crt: refresh %04X+%04X, %d+%d=%d bytes\n", adr2, adr3 cnt2, cnt3, cnt2 + cnt3));
+  LL(printf("crt: refresh %04X+%04X, %d+%d=%d bytes\n", adr2, adr3, cnt2, cnt3, cnt2 + cnt3));
   if (cnt2 + cnt3 < crt.size) {
     D(printf("crt: crt dma underrun %04X+%04X, %d+%d=%d bytes, %d expected\n", 
              adr2, adr3, cnt2, cnt3, cnt2 + cnt3, crt.size));
