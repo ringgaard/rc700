@@ -15,8 +15,11 @@ HDRFILES=cpu.h rc700.h disk.h winbootrom
 ROM=roa375.rom
 SDL=SDL-1.2.15
 
-rc700.exe: $(SRCFILES) $(HDRFILES) rcterm-sdl.c
-	$(CC) -o $@ /O2 /D WIN32 $(SRCFILES) rcterm-sdl.c /I $(SDL)/include /link $(SDL)/lib/x86/SDL.lib
+rc700.res: rc700.rc
+	$(RC) /fo rc700.res rc700.rc
+
+rc700.exe: $(SRCFILES) $(HDRFILES) rcterm-sdl.c rc700.res
+	$(CC) -o $@ /O2 /D WIN32 $(SRCFILES) rcterm-sdl.c rc700.res /I $(SDL)/include /link $(SDL)/lib/x86/SDL.lib
 
 rom2struct.exe: rom2struct.c
 	$(CC) -o $@ rom2struct.c

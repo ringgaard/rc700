@@ -35,7 +35,7 @@ BYTE dip_switch_in(int dev) {
 }
 
 void speaker_out(BYTE data, int dev) {
-  printf("beep: value %x\n", data);
+  printf("beep: value %x\007\n", data);
 }
 
 void disable_prom(BYTE data, int dev) {

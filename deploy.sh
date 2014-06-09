@@ -19,3 +19,7 @@ echo "===== Make rc700-win.zip"
 rm -f /mnt/www/rc702/rc700-win.zip
 zip /mnt/www/rc702/rc700-win.zip rc700.exe rccpm22.imd SDL.dll
 
+echo "===== Make rc700-win-setup.exe"
+wine ../innosetup/ISCC rc700.iss /o.
+cp rc700-win-setup.exe /mnt/www/rc702/
+
