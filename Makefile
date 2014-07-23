@@ -9,16 +9,19 @@ clean:
 
 SRCFILES=cpu0.c cpu1.c cpu2.c cpu3.c cpu4.c cpu5.c cpu6.c cpu7.c  \
          rom.c charrom.c charram.c pio.c sio.c ctc.c dma.c crt.c fdc.c wdc.c ftp.c disk.c fifo.c \
-         rc700.c monitor.c disasm.c
+         monitor.c disasm.c
 
 HDRFILES=cpu.h rc700.h disk.h bootrom
 ROM=roa375.rom
 
-rc700: $(SRCFILES) $(HDRFILES) rcterm-sdl.c
-	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rcterm-sdl.c -lSDL
+rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c
+	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700.c rcterm-sdl.c -lSDL
 
-rc700-curses: $(SRCFILES) $(HDRFILES) rcterm-curses.c
-	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rcterm-curses.c -lncursesw
+rc700-curses: $(SRCFILES) $(HDRFILES) rc700.c rcterm-curses.c
+	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700.c rcterm-curses.c -lncursesw
+
+rc700d: $(SRCFILES) $(HDRFILES) rc700d.c websock.c sha1.c sha1.h
+	$(CC) -m32 -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700d.c websock.c sha1.c
 
 rom2struct: rom2struct.c
 	$(CC) -o $@ rom2struct.c
@@ -46,4 +49,7 @@ blankimd: blankimd.c disk.c disk.h
 
 rxtext: rtext.c
 	$(CC) -o $@ rctext.c
+
+char2raw: char2raw.c charrom.c charram.c
+	$(CC) -o $@ char2raw.c charrom.c charram.c
 

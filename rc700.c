@@ -136,7 +136,7 @@ static void init_rc700() {
   
   // Mount floppy disks images.
   for (i = 0; i < num_floppies; ++i) {
-    fdc_mount_disk(i, floppy[i]);
+    fdc_mount_disk(i, floppy[i], 0);
   }
 
   // Mount hard disks image.

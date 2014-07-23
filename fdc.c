@@ -524,11 +524,11 @@ void fdc_floppy_motor(BYTE data, int dev) {
   L(printf("fdc: floppy motor %02X\n", data));
 }
 
-int fdc_mount_disk(int drive, char *imagefile) {
+int fdc_mount_disk(int drive, char *imagefile, int flush) {
   struct disk *disk;
 
   if (fdc.disk[drive]) {
-    if (fdc.disk[drive]->dirty) {
+    if (flush && fdc.disk[drive]->dirty) {
       W(printf("fdc: save drive %d to %s\n", drive, fdc.disk[drive]->filename));
       save_disk_image(fdc.disk[drive]);
     }

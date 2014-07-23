@@ -912,7 +912,7 @@ static int do_mount(char *s) {
     drive = 0;
   }
 
-  return fdc_mount_disk(drive & 3, fn);
+  return fdc_mount_disk(drive & 3, fn, 1);
 }
 
 // Output help text.
