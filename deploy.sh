@@ -9,7 +9,7 @@ wine cmd /C winbuild.cmd
 
 echo "===== Make rc700-src.zip"
 rm -f /mnt/www/rc702/rc700-src.zip
-zip /mnt/www/rc702/rc700-src.zip *.c *.h *.ico *.rc Makefile Makefile.win roa375.rom rccpm22.imd
+zip /mnt/www/rc702/rc700-src.zip *.c *.h *.ico *.rc Makefile Makefile.win *.rom rccpm22.imd autoload.imd
 
 echo "===== Make rc700.zip"
 rm -f /mnt/www/rc702/rc700.zip

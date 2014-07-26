@@ -39,8 +39,9 @@ void speaker_out(BYTE data, int dev) {
 }
 
 void disable_prom(BYTE data, int dev) {
-  L(printf("prom: disable=%x\n", data));
-  memset(ram, 0, 2048);
+  L(printf("prom: disable %d\n", data));
+  if (data == 0) memset(ram, 0, 2048);
+  if (data == 1) memset(ram + 2048, 0, 2048);
 }
 
 void sem_char_out(BYTE data, int dev) {
@@ -66,6 +67,7 @@ void init_rom() {
 
   register_port(0x14, dip_switch_in, fdc_floppy_motor, 0);
   register_port(0x18, NULL, disable_prom, 0);
+  register_port(0x19, NULL, disable_prom, 1);
   register_port(0x1c, NULL, speaker_out, 0);
 
   // SEM702 programmable character RAM.

@@ -61,7 +61,7 @@
 #define FDC_ST0_NT    0x00       // Interrupt code, normal termination
 #define FDC_ST0_AT    0x40       // Interrupt code, abnormal termination
 #define FDC_ST0_IC    0x80       // Interrupt code, invalid command
-#define FDC_ST0_MASK  0xE0       // Interrupt code mask
+#define FDC_ST0_MASK  0xF0       // Interrupt code mask
 
 // FDC status register 1.
 #define FDC_ST1_MA    0x01       // Missing address mark
@@ -241,10 +241,10 @@ void fdc_read_sectors(int drive) {
 
     // Move to next sector.
     R += 1;
-    if (R > EOT) {
+    if (R > track->num_sectors) {
       R = 1;
-      if (!MT) break;
       H = 1 - H;
+      if (!MT) break;
     }
   }
   dma_transfer_done(1);
@@ -317,10 +317,10 @@ void fdc_write_sectors(int drive) {
 
     // Move to next sector.
     R += 1;
-    if (R > EOT) {
+    if (R > track->num_sectors) {
       R = 1;
-      if (!MT) break;
       H = 1 - H;
+      if (!MT) break;
     }
   }
   dma_transfer_done(1);
@@ -371,7 +371,7 @@ void fdc_execute_command() {
   fdc.st1 = 0;
   switch (cmd) {
     case FDC_CMD_READ_TRACK:
-      W(printf("fdc: read track, not implemented\n"));
+      L(printf("fdc: read track\n"));
       fdc_read_sectors(drive);
       intr = 1;
       break;
@@ -404,6 +404,7 @@ void fdc_execute_command() {
       L(printf("fdc: recalibrate, drive=%d\n", drive));
       fdc.cylinder[drive] = 0;
       fdc.st0 |= FDC_ST0_SE;
+      if (!fdc.disk[drive]) fdc.st0 |= FDC_ST0_EC;
       fdc_update_status(drive, head, 1);
       intr = 1;
       break;

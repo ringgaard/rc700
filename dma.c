@@ -154,7 +154,7 @@ BYTE dma_adr_in(int channel) {
 }
 
 void dma_adr_out(BYTE data, int channel) {
-  L(if (channel < 2) printf("dma%d: write addr %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
+  L(printf("dma%d: write addr %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
   if (dma.flipflop) {
     dma.base_adr[channel] = (dma.base_adr[channel] & 0x00ff) | (data << 8);
   } else {
@@ -261,7 +261,15 @@ void dma_transferred(int channel) {
 }
 
 void dma_transfer_done(int channel) {
-  dma.status &= ~(1 << (channel + 4));
+  if (dma.mode[channel] & DMA_MODE_AUTOINIT) {
+    // Restart DMA transfer.
+    dma.curr_adr[channel] = dma.base_adr[channel];
+    dma.curr_cnt[channel] = dma.base_cnt[channel];
+    dma.status &= ~(1 << channel);
+  } else {
+    // Clear DMA request.
+    dma.status &= ~(1 << (channel + 4));
+  }
 }
 
 int dma_completed(int channel) {

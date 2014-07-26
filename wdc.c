@@ -113,7 +113,7 @@ void wdc_read() {
   while (n > 0 && !dma_completed(0)) {
     if (c < CYLS && h < HEADS && s < SECTORS) {
       // Read sector from disk.
-      L(printf("fdc: read sector C=%d,H=%d,S=%d: read %d bytes to %04Xs\n", c, s, s, size, dma_address(0)));
+      L(printf("wdc: read sector C=%d,H=%d,S=%d: read %d bytes to %04Xs\n", c, s, s, size, dma_address(0)));
       if (fseek(drive, ((((c * HEADS) + h) * SECTORS + s) * SECTSIZE), SEEK_SET) == -1) {
         W(printf("wdc%d: read seek error %d sector C=%d,H=%d,S=%d\n", d, errno, c, h, s));
         wdc.status |= WDC_STAT_ERROR;
@@ -200,6 +200,13 @@ void wdc_write() {
 void wdc_command(BYTE data, int dev) {
   int cyl, intr;
 
+  // Ignore WDC command unless HD is mounted.
+  if (!wdc.drive[0]) {
+    LL(printf("wdc: ignore command %02x, no hard disk mounted\n", data));
+    return;
+  }
+
+  // Execute WDC command.
   intr = 0;
   wdc.status &= ~WDC_STAT_ERROR;
   switch (data & 0xF0) {
@@ -212,6 +219,7 @@ void wdc_command(BYTE data, int dev) {
       wdc.reg[WDC_REG_CYLHI] = 0;
       wdc.reg[WDC_REG_SDH] = 0;
       wdc.status |= WDC_STAT_SEEK_COMPLETE;
+      intr = 1;
       break;
 
     case WDC_CMD_TEST:

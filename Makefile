@@ -12,22 +12,24 @@ SRCFILES=cpu0.c cpu1.c cpu2.c cpu3.c cpu4.c cpu5.c cpu6.c cpu7.c  \
          monitor.c disasm.c
 
 HDRFILES=cpu.h rc700.h disk.h bootrom
-ROM=roa375.rom
 
-rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c
+#AUTOLOAD=roa375.rom
+AUTOLOAD=rob358.rom
+
+rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c bootrom
 	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700.c rcterm-sdl.c -lSDL
 
-rc700-curses: $(SRCFILES) $(HDRFILES) rc700.c rcterm-curses.c
+rc700-curses: $(SRCFILES) $(HDRFILES) rc700.c rcterm-curses.c bootrom
 	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700.c rcterm-curses.c -lncursesw
 
-rc700d: $(SRCFILES) $(HDRFILES) rc700d.c websock.c sha1.c sha1.h
+rc700d: $(SRCFILES) $(HDRFILES) rc700d.c websock.c sha1.c sha1.h bootrom
 	$(CC) -m32 -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700d.c websock.c sha1.c
 
 rom2struct: rom2struct.c
 	$(CC) -o $@ rom2struct.c
 
-bootrom: rom2struct $(ROM)
-	./rom2struct $(ROM) > bootrom
+bootrom: rom2struct $(AUTOLOAD)
+	./rom2struct $(AUTOLOAD) > bootrom
 
 ana2imd: ana2imd.c disk.c disk.h sim.h
 	$(CC) -o $@ ana2imd.c disk.c

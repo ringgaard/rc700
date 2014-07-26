@@ -60,7 +60,7 @@ BYTE pio_data_in(int dev) {
   BYTE data;
   
   if (fifo_empty(&pio[dev].rx)) {
-    W(printf("pio%d: rx queue empty\n", dev));
+    L(printf("pio%d: rx queue empty\n", dev));
     data = 0;
   } else {
     data = fifo_get(&pio[dev].rx);
