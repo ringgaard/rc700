@@ -155,7 +155,7 @@ void crt_command_out(BYTE data, int dev) {
 }
 
 int crt_poll() {
-  WORD cnt2, cnt3;
+  int cnt2, cnt3;
   WORD adr2, adr3;
   int update = 0;
 

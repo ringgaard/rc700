@@ -141,7 +141,6 @@ void wdc_read() {
 void wdc_write() {
   FILE *drive;
   WORD adr;
-  WORD cnt;
 
   // Get parameters.  
   int d = (wdc.reg[WDC_REG_SDH] >> 3) & 0x03;
@@ -149,7 +148,7 @@ void wdc_write() {
   int h = wdc.reg[WDC_REG_SDH] & 0x07;
   int s = wdc.reg[WDC_REG_SECTNO];
   int n = wdc.reg[WDC_REG_SECTCNT];
-  int size = sector_size[(wdc.reg[WDC_REG_SDH] >> 5) & 0x03];
+  int sectsize = sector_size[(wdc.reg[WDC_REG_SDH] >> 5) & 0x03];
   L(printf("wdc: write drive=%d c=%d h=%d, s=%d, n=%d, sector size %d\n", d, c, h, s, n, size));
 
   // Get mounted disk image for drive.
@@ -166,13 +165,13 @@ void wdc_write() {
   while (n > 0 && !dma_completed(0)) {
     if (c < CYLS && h < HEADS && s < SECTORS) {
       // Fetch data from DMA channel.
-      cnt = size;
-      adr = dma_fetch(0, &cnt);
+      int size = sectsize;
+      adr = dma_fetch(0, &size);
 
-      LL(printf("wdc%d: write sector C=%d,H=%d,S=%d: write %d bytes from %04X\n", d, c, h, s, cnt, adr));
+      LL(printf("wdc%d: write sector C=%d,H=%d,S=%d: write %d bytes from %04X\n", d, c, h, s, size, adr));
     
       // Write data to disk.
-      memcpy(wdc.buffer, ram + adr, cnt);
+      memcpy(wdc.buffer, ram + adr, size);
       if (fseek(drive, ((((c * HEADS) + h) * SECTORS + s) * SECTSIZE), SEEK_SET) == -1) {
         W(printf("wdc%d: write seek error %d sector C=%d,H=%d,S=%d\n", d, errno, c, h, s));
         wdc.status |= WDC_STAT_ERROR;

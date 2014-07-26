@@ -54,6 +54,7 @@ static int op_halt() {
   while (int_type == 0) {
     cpu_halt();
     R += 99999;
+    cpu_poll(99999);
   }
   return 0;
 }
@@ -1635,6 +1636,7 @@ static int op_cpd() {
 // CP E
 static int op_cpe() {
   int i;
+
 
 
   ((E & 0xf) > (A & 0xf)) ? (F |= H_FLAG) : (F &= ~H_FLAG);

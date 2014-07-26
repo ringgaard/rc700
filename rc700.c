@@ -93,7 +93,6 @@ void cpu_poll(int cycles) {
 
   quantum += cycles;
   if (quantum < CYCLES_PER_FRAME) return;
-
   t = clock();
   if (pio_poll() || crt_poll()) {
     overhead = (clock() - t) * 1000 / CLOCKS_PER_SEC;

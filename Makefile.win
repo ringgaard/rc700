@@ -12,7 +12,7 @@ SRCFILES=cpu0.c cpu1.c cpu2.c cpu3.c cpu4.c cpu5.c cpu6.c cpu7.c  \
          rc700.c monitor.c disasm.c
 
 HDRFILES=cpu.h rc700.h disk.h winbootrom
-ROM=roa375.rom
+ROM=rob358.rom
 SDL=SDL-1.2.15
 
 rc700.res: rc700.rc

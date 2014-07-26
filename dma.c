@@ -154,7 +154,7 @@ BYTE dma_adr_in(int channel) {
 }
 
 void dma_adr_out(BYTE data, int channel) {
-  L(printf("dma%d: write addr %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
+  L(if (channel < 2) printf("dma%d: write addr %02X (%s)\n", channel, data, dma.flipflop ? "hi" : "lo"));
   if (dma.flipflop) {
     dma.base_adr[channel] = (dma.base_adr[channel] & 0x00ff) | (data << 8);
   } else {
@@ -225,11 +225,11 @@ void dma_fill(int channel, BYTE value, int  bytes) {
   }
 }
 
-WORD dma_fetch(int channel, WORD *size) {
-  WORD len = *size;
+WORD dma_fetch(int channel, int *size) {
+  int len = *size;
   WORD adr = dma.curr_adr[channel];
   WORD cnt = dma.curr_cnt[channel];
-  WORD left = cnt + 1;
+  int left = cnt + 1;
 
   if (cnt == 0) {
     dma.status |= (1 << channel);

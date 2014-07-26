@@ -41,7 +41,7 @@ void speaker_out(BYTE data, int dev) {
 void disable_prom(BYTE data, int dev) {
   L(printf("prom: disable %d\n", data));
   if (data == 0) memset(ram, 0, 2048);
-  if (data == 1) memset(ram + 2048, 0, 2048);
+  if (data == 1) memset(ram + 0x2000, 0, 2048);
 }
 
 void sem_char_out(BYTE data, int dev) {

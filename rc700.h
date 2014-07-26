@@ -65,7 +65,7 @@ int dma_completed(int channel);
 void dma_transfer_start(int channel);
 void dma_transfer(int channel, BYTE *data, int  bytes);
 void dma_fill(int channel, BYTE value, int bytes);
-WORD dma_fetch(int channel, WORD *size);
+WORD dma_fetch(int channel, int *size);
 void dma_transfer_done(int channel);
 
 // crt.c

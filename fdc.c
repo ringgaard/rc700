@@ -164,21 +164,30 @@ void fdc_update_transfer_result(int drive, int cylinder, int head, int sector, i
   fdc.result[6] = count;
 }
 
-void fdc_check_encoding(int drive, int head, int mfm) {
-  struct disk *disk;
-  struct track *track;
-  
-  disk = fdc.disk[drive];
-  if (disk == NULL) {
-    printf("drive %d is not mounted\n", drive);
-    return;
+void fdc_read_id(int drive, int head, int mfm) {
+  int N = 0;
+  int sectsize;
+
+  struct disk *disk = fdc.disk[drive];
+  if (disk != NULL) {
+    struct track *track = &disk->tracks[fdc.cylinder[drive]][head];
+
+    // Check encoding.
+    if (mfm != track->mfm) {
+      fdc.st0 |= FDC_ST0_AT;
+      fdc.st1 |= FDC_ST1_MA | FDC_ST1_ND;
+    }
+
+    // Return sector size for track.
+    N = 0;
+    sectsize = track->sector_size;
+    while (sectsize > 128) {
+      sectsize >>= 1;
+      N++;
+    }
   }
-  
-  track = &disk->tracks[fdc.cylinder[drive]][head];
-  if (mfm != track->mfm) {
-    fdc.st0 |= FDC_ST0_AT;
-    fdc.st1 |= FDC_ST1_MA | FDC_ST1_ND;
-  }
+
+  fdc_update_transfer_result(drive, fdc.cylinder[drive], head, 1, N);
 }
 
 void fdc_read_sectors(int drive) {
@@ -254,7 +263,6 @@ void fdc_read_sectors(int drive) {
 
 void fdc_write_sectors(int drive) {
   WORD adr;
-  WORD cnt;
   int sector_size;
 
   // Get command parameters.
@@ -298,17 +306,16 @@ void fdc_write_sectors(int drive) {
       if (size > sector_size) size = sector_size;
       
       // Fetch data from DMA channel.
-      cnt = size;
-      adr = dma_fetch(1, &cnt);
+      adr = dma_fetch(1, &size);
 
-      L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes to %04X, %d kbps, %s\n", C, H, R - 1, cnt, adr, track->transfer_rate, track->mfm ? "MFM" : "FM"));
+      L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes to %04X, %d kbps, %s\n", C, H, R - 1, size, adr, track->transfer_rate, track->mfm ? "MFM" : "FM"));
       
-      if (cnt != track->sector_size) {
-        W(printf("fdc: partial sector C=%d,H=%d,S=%d on drive %d, %d bytes, %d expected\n", C, H, R - 1, drive, cnt, track->sector_size));
+      if (size != track->sector_size) {
+        W(printf("fdc: partial sector C=%d,H=%d,S=%d on drive %d, %d bytes, %d expected\n", C, H, R - 1, drive, size, track->sector_size));
       }
 
       // Write data to disk.
-      write_disk_sector(disk, C, H, R - 1, ram + adr, cnt);      
+      write_disk_sector(disk, C, H, R - 1, ram + adr, size);
     } else {
       // Sector not found.
       fdc.st1 |= FDC_ST1_ND;
@@ -421,8 +428,7 @@ void fdc_execute_command() {
 
     case FDC_CMD_READ_ID:
       L(printf("fdc: read id, drive=%d, head=%d, mf=%02x\n", drive, head, fdc.command[0] & 0x40));
-      fdc_check_encoding(drive, head, (fdc.command[0] & 0x40) != 0);
-      fdc_update_transfer_result(drive, fdc.cylinder[drive], head, 0, 0);
+      fdc_read_id(drive, head, (fdc.command[0] & 0x40) != 0);
       intr = 1;
       break;
 
