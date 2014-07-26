@@ -38,6 +38,7 @@ void register_port(int adr, BYTE (*in)(int dev), void (*out)(BYTE data, int dev)
 #define CTC_CHANNEL_SIOB  1
 #define CTC_CHANNEL_CRT   2
 #define CTC_CHANNEL_FDC   3
+#define CTC_CHANNEL_WDC   4
 
 void init_ctc();
 void ctc_trigger(int channel);

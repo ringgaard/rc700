@@ -10,6 +10,12 @@
 // Channel 2: CRT interrupt bridge
 // Channel 3: FDC interrupt bridge
 //
+// Additional CTC on RC763 interface card:
+//
+// Channel 0: WDC intetrupt bridge 
+// Channel 1: Unused
+// Channel 2: Unused
+// Channel 3: Unused
 
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +25,8 @@
 #define L(x)
 #define W(x) x
 
-#define NUM_CTC_CHANNELS  4
+// RC700 systems with a RC763 harddisk has an extra CTC.
+#define NUM_CTC_CHANNELS  8
 
 #define CTC_CTRL_RESET        0x02
 #define CTC_CTRL_TIME_FOLLOWS 0x04
@@ -55,8 +62,8 @@ void ctc_out(BYTE data, int channel) {
   } else {
     int i;
     L(printf("ctc%d: set int vector %02X\n", channel, data));
-    if (channel != 0) W(printf("ctc%d: should only set channel 0 int vector\n", channel));
-    for (i = 0; i < NUM_CTC_CHANNELS; ++i) {
+    if ((channel & 3) != 0) W(printf("ctc%d: should only set channel 0 int vector\n", channel));
+    for (i = channel; i < channel + 4; ++i) {
       ctc[i].int_vec = (data & 0xf8) | (i << 1);
     }
   }
@@ -79,9 +86,16 @@ void init_ctc() {
     memset(&ctc[i], 0, sizeof(struct counter_channel));
   }
 
+  // Main CTC.
   register_port(0x0c, ctc_in, ctc_out, 0);
   register_port(0x0d, ctc_in, ctc_out, 1);
   register_port(0x0e, ctc_in, ctc_out, 2);
   register_port(0x0f, ctc_in, ctc_out, 3);
+
+  // Extra CTC in RC763 interface card.
+  register_port(0x44, ctc_in, ctc_out, 4);
+  register_port(0x45, ctc_in, ctc_out, 5);
+  register_port(0x46, ctc_in, ctc_out, 6);
+  register_port(0x47, ctc_in, ctc_out, 7);
 }
 

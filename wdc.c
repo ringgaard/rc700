@@ -198,8 +198,9 @@ void wdc_write() {
 }
 
 void wdc_command(BYTE data, int dev) {
-  int cyl;
+  int cyl, intr;
 
+  intr = 0;
   wdc.status &= ~WDC_STAT_ERROR;
   switch (data & 0xF0) {
     case WDC_CMD_RESTORE:
@@ -221,17 +222,17 @@ void wdc_command(BYTE data, int dev) {
       cyl = wdc.reg[WDC_REG_CYLLO] + (wdc.reg[WDC_REG_CYLHI] << 8);
       L(printf("wdc: seek to cylinder %d, stepping rate %d\n", cyl, data & 0x0F));
       wdc.status |= WDC_STAT_SEEK_COMPLETE;
-      interrupt(0x08, 3);
+      intr = 1;
       break;
 
     case WDC_CMD_READ:
       wdc_read();
-      interrupt(0x08, 3);
+      intr = 1;
       break;
 
     case WDC_CMD_WRITE:
       wdc_write();
-      interrupt(0x08, 3);
+      intr = 1;
       break;
 
     case WDC_CMD_FORMAT:
@@ -240,6 +241,11 @@ void wdc_command(BYTE data, int dev) {
 
     default:
       W(printf("wdc: unknown command (%02X)\n", data));
+  }
+
+  if (intr) {
+    // In RC702 with RC763 an extra CTC is used for generating WDC interrupts.
+    ctc_trigger(CTC_CHANNEL_WDC);
   }
 }
 
