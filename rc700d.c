@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <time.h>
@@ -42,7 +43,7 @@ static struct port ports[256];
 #define CYCLES_PER_FRAME      (CPU_CLOCK_FREQUENCY / FRAMES_PER_SECOND)
 #define MILLISECS_PER_FRAME   (1000 / FRAMES_PER_SECOND)
 
-// Number of CPU cycles executed in current current frame.
+// Number of CPU cycles executed in current frame.
 int quantum = 0; 
 
 // Milliseconds delay per frame taking simulation speed into account.
@@ -104,6 +105,26 @@ void cpu_halt() {
   delay(ms_per_frame);
 };
 
+// Log message to console.
+void logmsg(const char *fmt, ...) {
+  va_list args;
+  char buffer[1024];
+  time_t now;
+  struct tm tm;
+
+  va_start(args, fmt);
+  vsprintf(buffer, fmt, args);
+  va_end(args);
+
+  now = time(NULL);
+  localtime_r(&now, &tm);
+
+  printf("%04d/%02d/%02d %02d:%02d:%02d [%d] %s\n",
+         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, 
+         tm.tm_hour, tm.tm_min, tm.tm_sec, getpid(), buffer);
+  fflush(stdout);
+}
+
 // Initialize RC700 simulator.
 static void init_rc700() {
   int i;
@@ -131,7 +152,7 @@ static void init_rc700() {
 void rcterm_clear_screen(int cols, int rows) {
   unsigned char msg[1];
 
-  //printf("clear screen\n");
+  //logmsg("clear screen");
   msg[0] = MSG_CLRSCR;
 
   if (websock_send(&ws, WS_OP_BIN, msg, 1, NULL, 0) < 0) {
@@ -143,7 +164,7 @@ void rcterm_clear_screen(int cols, int rows) {
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
   unsigned char msg[3];
 
-  //printf("refresh screen\n");
+  //logmsg("refresh screen");
   msg[0] = MSG_SCREEN;
   msg[1] = cols;
   msg[2] = rows;
@@ -155,13 +176,13 @@ void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
 }
 
 void rcterm_set_cursor(int type, int underline) {
-  //printf("set cursor %d %d\n", type, underline);
+  //logmsg("set cursor %d %d", type, underline);
 }
 
 int rcterm_gotoxy(int col, int row) {
   unsigned char msg[3];
 
-  //printf("gotoxy %d %d\n", col, row);
+  //logmsg("gotoxy %d %d", col, row);
   msg[0] = MSG_CURSOR;
   msg[1] = col;
   msg[2] = row;
@@ -188,13 +209,13 @@ int rcterm_keypressed() {
   // Check for key press event.
   if (ws.end - ws.buffer == 2 && ws.buffer[0] == MSG_KEY) {
     int key = ws.buffer[1];
-    //printf("key %d\n", key);
+    //logmsg("key %d", key);
     return key;
   }
 
   // Check for halt command.
   if (ws.end - ws.buffer == 1 && ws.buffer[0] == MSG_HALT) {
-    printf("halt\n");
+    logmsg("halt");
     cpu_error = USERINT;
     cpu_state = STOPPED;
   }
@@ -224,7 +245,23 @@ int mount_disk(int drive, char *image) {
 
 // Run simulator instance.
 int run(int sock) {
-  printf("run simulator instance %d\n", getpid());
+  struct timeval timeout;
+  struct sockaddr_in client;
+  int addrlen;
+
+  // Get client address.
+  addrlen = sizeof(struct sockaddr_in);
+  if (getpeername(sock, (struct sockaddr *) &client, &addrlen) < 0) {
+    perror("getpeername");
+    return -1;
+  }
+  logmsg("connect from %s port %d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+
+  // Set send and receive timeout on socket.
+  timeout.tv_sec = 60;
+  timeout.tv_usec = 0;
+  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout));
+  setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *) &timeout, sizeof(timeout));
 
   // Initialize websocket connection to client.
   websock_init(&ws, sock);
@@ -240,15 +277,14 @@ int run(int sock) {
   cpu_state = STOPPED;
   for (;;) {
     if (cpu_state == CONTIN_RUN) {
-      printf("start\n");
+      logmsg("start");
       cpu_error = NONE;
       cpu();
-      printf("stopped\n");
+      logmsg("stop");
     } else {
-      printf("wait for command\n");
+      logmsg("wait");
       if (websock_recv(&ws, WS_BLOCK) <= 0) break;
       if (ws.end - ws.buffer == 1 && ws.buffer[0] == MSG_RUN) {
-        printf("run\n");
         cpu_state = CONTIN_RUN;
       } else if (ws.end - ws.buffer > 1 && ws.buffer[0] == MSG_MOUNT) {
         int drive = ws.buffer[1];
@@ -257,9 +293,9 @@ int run(int sock) {
           char image[128];
           memcpy(image, ws.buffer + 2, len);
           image[len] = 0;
-          printf("mount %s on drive %d\n", image, drive);
+          logmsg("mount %s on drive %d", image, drive);
           if (mount_disk(drive, image) < 0) {
-            printf("mount failed\n");
+            logmsg("mount failed");
             break;
           }
         }
@@ -270,7 +306,7 @@ int run(int sock) {
   // Close client connection.
   websock_free(&ws);
 
-  printf("terminate simulator instance %d\n", getpid());
+  logmsg("done");
   return 0;
 }
 
@@ -339,6 +375,7 @@ int main(int argc, char *argv[]) {
     perror("listen");
     exit(1);
   }
+  logmsg("rc700 deamon listening on port %d", port);
 
   while (!terminate) {
     // Wait until new connection on port.
@@ -369,7 +406,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Terminate deamon.
-  printf("Terminate RC700 deamon\n");
+  logmsg("terminating rc700 deamon");
   close(sock);
   return 0;
 }
