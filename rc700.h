@@ -65,8 +65,10 @@ int dma_completed(int channel);
 void dma_transfer_start(int channel);
 void dma_transfer(int channel, BYTE *data, int  bytes);
 void dma_fill(int channel, BYTE value, int bytes);
-WORD dma_fetch(int channel, int *size);
+BYTE *dma_fetch(int channel, int *size);
 void dma_transfer_done(int channel);
+int dma_read_ready(int channel);
+int dma_write_ready(int channel);
 
 // crt.c
 
@@ -88,6 +90,9 @@ int wdc_mount_harddisk(int drive, char *imagefile);
 // ftp.c
 
 void init_ftp();
+
+// memdisk.c
+void init_mdc();
 
 // monitor.c
 

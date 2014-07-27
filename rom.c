@@ -11,13 +11,26 @@
 
 #include "rc700.h"
 
-#ifdef WIN32
-#include "winbootrom"
-#else
-#include "bootrom"
+#define L(x)
+
+// PROM0 (autoloader) and PROM1 (test).
+
+#define ROMSIZE 2048
+#define PROM0_ADDR 0x0000
+#define PROM1_ADDR 0x2000
+
+unsigned char blankrom[ROMSIZE];
+
+#ifndef PROM0
+#define PROM0 rob358
 #endif
 
-#define L(x)
+#ifndef PROM1
+#define PROM1 blankrom
+#endif
+
+extern unsigned char PROM0[];
+extern unsigned char PROM1[];
 
 // SEM702 programmable charater ram.
 extern unsigned char charram[];
@@ -27,7 +40,12 @@ BYTE sem_line = 0;
 // DIP switches:
 //   0x00: Maxi floppy (8") 
 //   0x80: Mini floppy (5 1/4")
-BYTE dip_switches = 0x80;
+
+#ifndef DIPSWITCH
+#define DIPSWITCH 0x80
+#endif
+
+BYTE dip_switches = DIPSWITCH;
 
 BYTE dip_switch_in(int dev) {
   L(printf("switch: read %02X PC=%04X\n", dip_switches, (WORD) (PC - ram)));
@@ -40,8 +58,8 @@ void speaker_out(BYTE data, int dev) {
 
 void disable_prom(BYTE data, int dev) {
   L(printf("prom: disable %d\n", data));
-  if (data == 0) memset(ram, 0, 2048);
-  if (data == 1) memset(ram + 0x2000, 0, 2048);
+  if (data == 0) memset(ram + PROM0_ADDR, 0, ROMSIZE);
+  if (data == 1) memset(ram + PROM0_ADDR, 0, ROMSIZE);
 }
 
 void sem_char_out(BYTE data, int dev) {
@@ -62,8 +80,9 @@ void sem_data_out(BYTE data, int dev) {
 void init_rom() {
   int i;
 
-  // Initialize memory with contents of boot ROM.
-  for (i = 0; i < ROM_SIZE; ++i) ram[i] = bootrom[i];
+  // Initialize memory with contents of PROMs.
+  for (i = 0; i < ROMSIZE; ++i) ram[i + PROM0_ADDR] = PROM0[i];
+  for (i = 0; i < ROMSIZE; ++i) ram[i + PROM1_ADDR] = PROM1[i];
 
   register_port(0x14, dip_switch_in, fdc_floppy_motor, 0);
   register_port(0x18, NULL, disable_prom, 0);

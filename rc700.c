@@ -94,6 +94,7 @@ void cpu_poll(int cycles) {
   quantum += cycles;
   if (quantum < CYCLES_PER_FRAME) return;
   t = clock();
+
   if (pio_poll() || crt_poll()) {
     overhead = (clock() - t) * 1000 / CLOCKS_PER_SEC;
   } else {
@@ -132,7 +133,10 @@ static void init_rc700() {
   init_fdc();
   init_wdc();
   init_ftp();
-  
+#ifdef HAS_MEMDISK
+  init_mdc();
+#endif
+
   // Mount floppy disks images.
   for (i = 0; i < num_floppies; ++i) {
     fdc_mount_disk(i, floppy[i], 0);

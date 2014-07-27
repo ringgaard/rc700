@@ -262,7 +262,7 @@ void fdc_read_sectors(int drive) {
 }
 
 void fdc_write_sectors(int drive) {
-  WORD adr;
+  BYTE *addr;
   int sector_size;
 
   // Get command parameters.
@@ -306,16 +306,16 @@ void fdc_write_sectors(int drive) {
       if (size > sector_size) size = sector_size;
       
       // Fetch data from DMA channel.
-      adr = dma_fetch(1, &size);
+      addr = dma_fetch(1, &size);
 
-      L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes to %04X, %d kbps, %s\n", C, H, R - 1, size, adr, track->transfer_rate, track->mfm ? "MFM" : "FM"));
+      L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes to %04X, %d kbps, %s\n", C, H, R - 1, size, (WORD) (addr - ram), track->transfer_rate, track->mfm ? "MFM" : "FM"));
       
       if (size != track->sector_size) {
         W(printf("fdc: partial sector C=%d,H=%d,S=%d on drive %d, %d bytes, %d expected\n", C, H, R - 1, drive, size, track->sector_size));
       }
 
       // Write data to disk.
-      write_disk_sector(disk, C, H, R - 1, ram + adr, size);
+      write_disk_sector(disk, C, H, R - 1, addr, size);
     } else {
       // Sector not found.
       fdc.st1 |= FDC_ST1_ND;

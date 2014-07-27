@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 
   printf("/* Generated from %s by %s on %s */\n", argv[1], __FILE__, __DATE__);
   printf("#define ROM_SIZE %d\n", ROM_SIZE);
-  printf("BYTE bootrom[] = {");
+  printf("unsigned char %s[] = {", argv[2]);
   for (i = 0; i < ROM_SIZE; ++i) {
     if (i % 16 == 0) printf("\n  ");
     printf("0x%02X, ", rom[i]);

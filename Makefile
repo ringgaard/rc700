@@ -13,23 +13,23 @@ SRCFILES=cpu0.c cpu1.c cpu2.c cpu3.c cpu4.c cpu5.c cpu6.c cpu7.c  \
 
 HDRFILES=cpu.h rc700.h disk.h bootrom
 
-#AUTOLOAD=roa375.rom
-AUTOLOAD=rob358.rom
+#AUTOLOAD=roa375
+AUTOLOAD=rob358
 
-rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c bootrom
-	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700.c rcterm-sdl.c -lSDL
+rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c $(AUTOLOAD).c
+	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sdl.c -lSDL
 
-rc700-curses: $(SRCFILES) $(HDRFILES) rc700.c rcterm-curses.c bootrom
-	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700.c rcterm-curses.c -lncursesw
+rc700-curses: $(SRCFILES) $(HDRFILES) rc700.c rcterm-curses.c $(AUTOLOAD).c
+	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-curses.c -lncursesw
 
-rc700d: $(SRCFILES) $(HDRFILES) rc700d.c websock.c sha1.c sha1.h bootrom
-	$(CC) -m32 -o $@ -O3 -Wno-unused-result $(SRCFILES) rc700d.c websock.c sha1.c
+rc700d: $(SRCFILES) $(HDRFILES) rc700d.c websock.c sha1.c sha1.h $(AUTOLOAD).c
+	$(CC) -m32 -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700d.c websock.c sha1.c
+
+$(AUTOLOAD).c: rom2struct $(AUTOLOAD).rom
+	./rom2struct $(AUTOLOAD).rom $(AUTOLOAD) > $(AUTOLOAD).c
 
 rom2struct: rom2struct.c
 	$(CC) -o $@ rom2struct.c
-
-bootrom: rom2struct $(AUTOLOAD)
-	./rom2struct $(AUTOLOAD) > bootrom
 
 ana2imd: ana2imd.c disk.c disk.h sim.h
 	$(CC) -o $@ ana2imd.c disk.c
@@ -54,4 +54,10 @@ rxtext: rtext.c
 
 char2raw: char2raw.c charrom.c charram.c
 	$(CC) -o $@ char2raw.c charrom.c charram.c
+
+phe358.c: rom2struct phe358.rom
+	./rom2struct phe358.rom phe358 > phe358.c
+
+rc700-memdisk: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c phe358.c memdisk.c
+	$(CC) -o $@ -O3 -Wno-unused-result -DHAS_MEMDISK -DPROM0=phe358 $(SRCFILES) phe358.c memdisk.c rc700.c rcterm-sdl.c -lSDL
 

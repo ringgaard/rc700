@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "sim.h"
+#include "cpu.h"
 #include "disk.h"
 
 int main(int argc, char *argv[]) {

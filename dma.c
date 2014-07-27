@@ -225,7 +225,7 @@ void dma_fill(int channel, BYTE value, int  bytes) {
   }
 }
 
-WORD dma_fetch(int channel, int *size) {
+BYTE *dma_fetch(int channel, int *size) {
   int len = *size;
   WORD adr = dma.curr_adr[channel];
   WORD cnt = dma.curr_cnt[channel];
@@ -234,7 +234,7 @@ WORD dma_fetch(int channel, int *size) {
   if (cnt == 0) {
     dma.status |= (1 << channel);
     *size = 0;
-    return adr;
+    return NULL;
   }
 
   if (dma.mode[channel] & DMA_MODE_DECREMENT) {
@@ -251,7 +251,7 @@ WORD dma_fetch(int channel, int *size) {
   }
 
   *size = len;
-  return adr;
+  return ram + adr;
 }
 
 void dma_transferred(int channel) {
@@ -282,6 +282,14 @@ WORD dma_address(int channel) {
 
 WORD dma_count(int channel) {
   return dma.curr_cnt[channel];
+}
+
+int dma_read_ready(int channel) {
+  return (dma.mode[channel] & 0x0c) == DMA_MODE_READ;
+}
+
+int dma_write_ready(int channel) {
+  return (dma.mode[channel] & 0x0c) == DMA_MODE_WRITE;
 }
 
 void init_dma() {

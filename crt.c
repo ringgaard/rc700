@@ -156,7 +156,7 @@ void crt_command_out(BYTE data, int dev) {
 
 int crt_poll() {
   int cnt2, cnt3;
-  WORD adr2, adr3;
+  BYTE *adr2, *adr3;
   int update = 0;
 
   // Only update screen if interrupts and video are enabled.
@@ -168,12 +168,12 @@ int crt_poll() {
   // in RC700.
   cnt2 = crt.size;
   adr2 = dma_fetch(2, &cnt2);
-  memcpy(crt.screen, ram + adr2, cnt2);
+  memcpy(crt.screen, adr2, cnt2);
   dma_transfer_done(2);
   if (cnt2 < crt.size) {
     cnt3 = crt.size - cnt2;
     adr3 = dma_fetch(3, &cnt3);
-    memcpy(crt.screen + cnt2, ram + adr3, cnt3);
+    memcpy(crt.screen + cnt2, adr3, cnt3);
     dma_transfer_done(3);
   } else {
     adr3 = 0;
