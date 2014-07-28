@@ -4,17 +4,17 @@
 
 all: rc700
 
-clean:
-	rm rc700 bootrom
-
 SRCFILES=cpu0.c cpu1.c cpu2.c cpu3.c cpu4.c cpu5.c cpu6.c cpu7.c  \
          rom.c charrom.c charram.c pio.c sio.c ctc.c dma.c crt.c fdc.c wdc.c ftp.c disk.c fifo.c \
          monitor.c disasm.c
 
-HDRFILES=cpu.h rc700.h disk.h bootrom
+HDRFILES=cpu.h rc700.h disk.h
 
 #AUTOLOAD=roa375
 AUTOLOAD=rob358
+
+clean:
+	rm rc700 $(AUTOLOAD).c
 
 rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c $(AUTOLOAD).c
 	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sdl.c -lSDL

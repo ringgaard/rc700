@@ -6,10 +6,9 @@ make rc700
 echo "===== Build RC700 simulator for Windows"
 wine cmd /C winbuild.cmd
 
-
 echo "===== Make rc700-src.zip"
 rm -f /mnt/www/rc702/rc700-src.zip
-zip /mnt/www/rc702/rc700-src.zip *.c *.h *.ico *.rc Makefile Makefile.win *.rom rccpm22.imd autoload.imd
+zip /mnt/www/rc702/rc700-src.zip *.c *.h *.ico *.rc Makefile Makefile.win *.rom rccpm22.imd autoload.imd COPYING
 
 echo "===== Make rc700.zip"
 rm -f /mnt/www/rc702/rc700.zip

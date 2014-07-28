@@ -41,6 +41,13 @@ int exatoi(char *str) {
   return num;
 }
 
+// Print current instruction.
+void printins() {
+  BYTE *pc = PC;
+  printf("%04x ", (unsigned int)(PC - ram));
+  disasm(&pc, pc - ram);
+}
+
 // Handling of software breakpoints (HALT opcode):
 //
 // Output: 

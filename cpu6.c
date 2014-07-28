@@ -566,7 +566,7 @@ int op_ddcb_handler() {
   int d;
   int t;
 
-  d = (char) *PC++;
+  d = (signed char) *PC++;
 
 #ifdef ENABLE_PCC
   // Correct PC overrun.
