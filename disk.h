@@ -31,6 +31,7 @@ struct disk {
   char *label;
   int num_tracks;
   int dirty;
+  int writeprotect;
   char filename[256];
   struct track tracks[MAX_CYLINDERS][MAX_SIDES];
 };

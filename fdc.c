@@ -147,6 +147,13 @@ void fdc_update_status(int drive, int head, int intr) {
   if (fdc.disk[drive]) {
     fdc.st0 &= ~FDC_ST0_NR;
     fdc.st3 |= FDC_ST3_RY;
+    if (fdc.disk[drive]->writeprotect) {
+      fdc.st1 |= FDC_ST1_NW;
+      fdc.st3 |= FDC_ST3_WP;
+    } else {
+      fdc.st1 &= ~FDC_ST1_NW;
+      fdc.st3 &= ~FDC_ST3_WP;
+    }
   } else {
     fdc.st0 |= FDC_ST0_NR;
     fdc.st3 &= ~FDC_ST3_RY;
@@ -285,6 +292,13 @@ void fdc_write_sectors(int drive) {
     return;
   }
 
+  // Do not allow write on write-protected disks.
+  if (disk->writeprotect) {
+    W(printf("fdc: cannot write to write-protected drive %d\n", drive));
+    fdc_update_transfer_result(drive, C, H, R, N);
+    return;
+  }
+
   L(printf("write: MT=%d MF=%d SK=%d C=%d H=%d R=%d N=%d EOT=%d GPL=%d DTL=%d\n", MT, MF, SK, C, H, R, N, EOT, GPL, DTL));
 
   // Compute sector size.
@@ -352,6 +366,13 @@ void fdc_format_track(int drive, int head) {
   if (!disk) {
     W(printf("fdc: drive %d is not mounted\n", drive));
     fdc_update_transfer_result(drive, fdc.cylinder[drive], head, 0, N);
+    return;
+  }
+
+  // Do not allow write on write-protected disks.
+  if (disk->writeprotect) {
+    W(printf("fdc: cannot format write-protected drive %d\n", drive));
+    fdc_update_transfer_result(drive, C, H, R, N);
     return;
   }
 
@@ -527,18 +548,20 @@ void fdc_data_out(BYTE data, int dev) {
   }
 }
 
-void fdc_floppy_motor(BYTE data, int dev) {
-  L(printf("fdc: floppy motor %02X\n", data));
+void fdc_flush_disk(int drive) {
+  struct disk *disk = fdc.disk[drive];
+
+  if (disk && !disk->writeprotect && disk->dirty) {
+    W(printf("fdc: save drive %d to %s\n", drive, disk->filename));
+    save_disk_image(disk);
+  }
 }
 
-int fdc_mount_disk(int drive, char *imagefile, int flush) {
+int fdc_mount_disk(int drive, char *imagefile, int writeprotect) {
   struct disk *disk;
 
   if (fdc.disk[drive]) {
-    if (flush && fdc.disk[drive]->dirty) {
-      W(printf("fdc: save drive %d to %s\n", drive, fdc.disk[drive]->filename));
-      save_disk_image(fdc.disk[drive]);
-    }
+    fdc_flush_disk(drive);
     free_disk_image(fdc.disk[drive]);
     fdc.disk[drive] = NULL;
   }
@@ -546,6 +569,7 @@ int fdc_mount_disk(int drive, char *imagefile, int flush) {
   L(printf("fdc: mount %s on drive %d\n", imagefile, drive));
   disk = load_disk_image(imagefile);
   if (disk) {
+    disk->writeprotect = writeprotect;
     fdc.disk[drive] = disk;
     return 0;
   } else {
@@ -554,10 +578,15 @@ int fdc_mount_disk(int drive, char *imagefile, int flush) {
   }
 }
 
-void fdc_flush_disk(int drive) {
-  if (fdc.disk[drive] && fdc.disk[drive]->dirty) {
-    W(printf("fdc: save drive %d to %s\n", drive, fdc.disk[drive]->filename));
-    save_disk_image(fdc.disk[drive]);
+void fdc_floppy_motor(BYTE data, int dev) {
+  int drive;
+
+  // Flush dirty disk images when motor stops.
+  L(printf("fdc: floppy motor %02X\n", data));
+  if (data == 0) {
+    for (drive = 0; drive < MAX_FDC_DRIVES; ++drive) {
+      fdc_flush_disk(drive);
+    }
   }
 }
 

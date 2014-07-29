@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
   char *pn = argv[0];
 
   printf("RC700 Simulator version 1.0, Copyright (C) 2014 by Michael Ringgaard\n");
-  printf("Z80-SIM Release 1.9, Copyright (C) 1987-2006 by Udo Munk\n\n");
+  printf("Z80-SIM Release 1.23, Copyright (C) 1987-2014 by Udo Munk\n\n");
   fflush(stdout);
 
   // Get command line parameters.
