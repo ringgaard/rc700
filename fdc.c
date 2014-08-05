@@ -251,7 +251,7 @@ void fdc_read_sectors(int drive) {
       }
     } else {
       // Sector not found.
-      fdc.st1 |= FDC_ST1_ND;
+      fdc.st1 |= FDC_ST1_ND | FDC_ST1_EN;
       break;
     }
 
@@ -332,7 +332,7 @@ void fdc_write_sectors(int drive) {
       write_disk_sector(disk, C, H, R - 1, addr, size);
     } else {
       // Sector not found.
-      fdc.st1 |= FDC_ST1_ND;
+      fdc.st1 |= FDC_ST1_ND | FDC_ST1_EN;
       break;
     }
 
@@ -551,13 +551,13 @@ void fdc_data_out(BYTE data, int dev) {
 void fdc_flush_disk(int drive) {
   struct disk *disk = fdc.disk[drive];
 
-  if (disk && !disk->writeprotect && disk->dirty) {
+  if (disk && !disk->writeprotect && !disk->readonly && disk->dirty) {
     W(printf("fdc: save drive %d to %s\n", drive, disk->filename));
     save_disk_image(disk);
   }
 }
 
-int fdc_mount_disk(int drive, char *imagefile, int writeprotect) {
+int fdc_mount_disk(int drive, char *imagefile, int flags) {
   struct disk *disk;
 
   if (fdc.disk[drive]) {
@@ -569,7 +569,8 @@ int fdc_mount_disk(int drive, char *imagefile, int writeprotect) {
   L(printf("fdc: mount %s on drive %d\n", imagefile, drive));
   disk = load_disk_image(imagefile);
   if (disk) {
-    disk->writeprotect = writeprotect;
+    if (flags & FDC_READONLY) disk->readonly = 1;
+    if (flags & FDC_WRITEPROTECT) disk->writeprotect = 1;
     fdc.disk[drive] = disk;
     return 0;
   } else {

@@ -240,7 +240,7 @@ int mount_disk(int drive, char *image) {
   strcat(path, "/");
   strcat(path, image);
   strcat(path, ".IMD");
-  return fdc_mount_disk(drive, path, 1);
+  return fdc_mount_disk(drive, path, FDC_READONLY);
 }
 
 // Run simulator instance.

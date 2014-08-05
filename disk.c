@@ -194,6 +194,9 @@ int save_disk_image(struct disk *disk) {
   printf("write disk image to %s\n", imagefile);
 #endif
 
+  // Check for read-only image.
+  if (disk->readonly) return -1;
+
   // Create output file.
   f = fopen(disk->filename, "wb");
   if (!f) {

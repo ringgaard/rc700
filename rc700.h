@@ -78,9 +78,12 @@ void dump_screen();
 
 // fdc.c
 
+#define FDC_READONLY     1
+#define FDC_WRITEPROTECT 2
+
 void init_fdc();
 void fdc_floppy_motor(BYTE data, int dev);
-int fdc_mount_disk(int drive, char *imagefile, int writeprotect);
+int fdc_mount_disk(int drive, char *imagefile, int flags);
 void fdc_flush_disk(int drive);
 
 // wdc.c
