@@ -1,5 +1,5 @@
 //
-// RC700  -  a Regnecentralen RC700 simulator
+// RC700  -  a Regnecentralen RC700 emulator
 //
 // Copyright (C) 2012 by Michael Ringgaard
 //

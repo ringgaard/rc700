@@ -1,5 +1,5 @@
 #
-# Makefile for RC700 simulator
+# Makefile for RC700 emulator
 #
 
 all: rc700

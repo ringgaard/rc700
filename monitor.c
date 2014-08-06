@@ -2,7 +2,7 @@
 // Z80SIM  -  a Z80-CPU simulator
 //
 // Copyright (C) 1987-2006 by Udo Munk
-// Modified for RC700 simulator by Michael Ringgaard
+// Modified for RC700 emulator by Michael Ringgaard
 //
 // ICE-type monitor for debugging Z80 programs on a host system.
 

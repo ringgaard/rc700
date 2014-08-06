@@ -1,5 +1,5 @@
 #
-# Windows Makefile for RC700 simulator
+# Windows Makefile for RC700 emulator
 #
 
 all: rc700.exe

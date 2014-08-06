@@ -1,15 +1,15 @@
-; Setup script for RC700 simulator
+; Setup script for RC700 emulator
 
 [Setup]
 AppId={{EF090301-CEEC-474B-943B-E022DE015E01}
-AppName=RC700 Simulator
+AppName=RC700 Emulator
 AppVersion=1.0
 AppPublisher=Michael Ringgaard
-AppPublisherURL=http://www.jbox.dk/rc702/simulator.shtm
-AppSupportURL=http://www.jbox.dk/rc702/simulator.shtm
-AppUpdatesURL=http://www.jbox.dk/rc702/simulator.shtm
-DefaultDirName={pf}\RC700 Simulator
-DefaultGroupName=RC700 Simulator
+AppPublisherURL=http://www.jbox.dk/rc702/emulator.shtm
+AppSupportURL=http://www.jbox.dk/rc702/emulator.shtm
+AppUpdatesURL=http://www.jbox.dk/rc702/emulator.shtm
+DefaultDirName={pf}\RC700 Emulator
+DefaultGroupName=RC700 Emulator
 AllowNoIcons=yes
 OutputBaseFilename=rc700-win-setup
 Compression=lzma
@@ -37,12 +37,12 @@ Name: "{group}\RC700 COMAL"; Filename: "{app}\rc700.exe"; Parameters: "RCCOMAL01
 Name: "{group}\RC700 COMPAS Pascal"; Filename: "{app}\rc700.exe"; Parameters: "COMPAS220.IMD"; IconFilename: "{app}\rc700.exe"
 Name: "{group}\RC700 Games"; Filename: "{app}\rc700.exe"; Parameters: "GAMES1.IMD"; IconFilename: "{app}\rc700.exe"
 Name: "{group}\More disks..."; Filename: "{app}\disks.url"
-Name: "{group}\{cm:UninstallProgram,RC700 Simulator}"; Filename: "{uninstallexe}"
+Name: "{group}\{cm:UninstallProgram,RC700 Emulator}"; Filename: "{uninstallexe}"
 
 [Registry]
 Root: HKCR; Subkey: ".imd"; ValueType: string; ValueName: ""; ValueData: "DiskImage"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: ".imd\Shell\Run unsing RC700 simulator\Command"; ValueType: string; ValueName: ""; ValueData: """{app}\rc700.exe"" ""%1"""; Flags: uninsdeletekey
+Root: HKCR; Subkey: ".imd\Shell\Run using RC700 emulator\Command"; ValueType: string; ValueName: ""; ValueData: """{app}\rc700.exe"" ""%1"""; Flags: uninsdeletekey
 Root: HKCR; Subkey: ".imd\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\rc700.exe"
 
 [Run]
-Filename: "{app}\rc700.exe"; Parameters: "RCCPM22.IMD"; Description: "{cm:LaunchProgram,RC700 Simulator}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\rc700.exe"; Parameters: "RCCPM22.IMD"; Description: "{cm:LaunchProgram,RC700 Emulator}"; Flags: nowait postinstall skipifsilent

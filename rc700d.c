@@ -1,9 +1,9 @@
 //
-// RC700  -  a Regnecentralen RC700 simulator
+// RC700  -  a Regnecentralen RC700 emulator
 //
 // Copyright (C) 2012 by Michael Ringgaard
 //
-// RC700 simulator server
+// RC700 emulator server
 //
 
 #include <stdio.h>
@@ -19,7 +19,7 @@
 #include "rc700.h"
 #include "websock.h"
 
-// Message types for simulator protocol.
+// Message types for emulator protocol.
 #define MSG_RUN    0
 #define MSG_HALT   1
 #define MSG_MOUNT  2
@@ -37,7 +37,7 @@ struct websock ws;
 // I/O handlers for all I/O ports.
 static struct port ports[256];
 
-// Simulate a 4 Mhz Z80 CPU with 50 Hz screen refresh rate.
+// Emulate a 4 Mhz Z80 CPU with 50 Hz screen refresh rate.
 #define CPU_CLOCK_FREQUENCY   4000000
 #define FRAMES_PER_SECOND     50
 #define CYCLES_PER_FRAME      (CPU_CLOCK_FREQUENCY / FRAMES_PER_SECOND)
@@ -46,7 +46,7 @@ static struct port ports[256];
 // Number of CPU cycles executed in current frame.
 int quantum = 0; 
 
-// Milliseconds delay per frame taking simulation speed into account.
+// Milliseconds delay per frame taking emulation speed into account.
 int ms_per_frame = MILLISECS_PER_FRAME;
 
 // Delay in milliseconds.
@@ -75,8 +75,8 @@ void cpu_out(BYTE adr, BYTE data) {
   (*ports[adr].out)(data, ports[adr].dev);
 }
 
-// Set simulator speed in percent.
-void set_simulation_speed(int percent) {
+// Set emulator speed in percent.
+void set_emulation_speed(int percent) {
   ms_per_frame = MILLISECS_PER_FRAME * 100 / percent;
   printf("speed: %d%%, %d ms/frame\n", percent, ms_per_frame);
 }
@@ -125,7 +125,7 @@ void logmsg(const char *fmt, ...) {
   fflush(stdout);
 }
 
-// Initialize RC700 simulator.
+// Initialize RC700 emulator.
 static void init_rc700() {
   int i;
 
@@ -243,7 +243,7 @@ int mount_disk(int drive, char *image) {
   return fdc_mount_disk(drive, path, FDC_READONLY);
 }
 
-// Run simulator instance.
+// Run emulator instance.
 int run(int sock) {
   struct timeval timeout;
   struct sockaddr_in client;
@@ -270,10 +270,10 @@ int run(int sock) {
     return -1;
   }
 
-  // Initialize simulator.
+  // Initialize emulator.
   init_rc700();
 
-  // Run simulation.
+  // Run emulator.
   cpu_state = STOPPED;
   for (;;) {
     if (cpu_state == CONTIN_RUN) {
@@ -332,7 +332,7 @@ int main(int argc, char *argv[]) {
   for (i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
       if (strcmp(argv[i], "-speed") == 0 && i + 1 < argc) {
-        set_simulation_speed(atoi(argv[i++ + 1]));
+        set_emulation_speed(atoi(argv[i++ + 1]));
       } else if (strcmp(argv[i], "-port") == 0 && i + 1 < argc) {
         port = atoi(argv[i++ + 1]);
       } else if (strcmp(argv[i], "-imgdir") == 0 && i + 1 < argc) {
@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
       break;
     }
 
-    // Fork new simulator instance.
+    // Fork new emulator instance.
     pid = fork();
     if (pid < 0) {
       perror("fork");
@@ -394,7 +394,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (pid == 0) {
-      // Running new simulator instance in child process.
+      // Running new emulator instance in child process.
       signal(SIGINT, SIG_DFL);
       close(sock);
       run(s);

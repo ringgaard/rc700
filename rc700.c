@@ -1,5 +1,5 @@
 //
-// RC700  -  a Regnecentralen RC700 simulator
+// RC700  -  a Regnecentralen RC700 emulator
 //
 // Copyright (C) 2012 by Michael Ringgaard
 //
@@ -27,7 +27,7 @@ char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 char *harddisk = NULL;
 
-// Simulate a 4 Mhz Z80 CPU with 50 Hz screen refresh rate.
+// Emulate a 4 Mhz Z80 CPU with 50 Hz screen refresh rate.
 #define CPU_CLOCK_FREQUENCY   4000000
 #define FRAMES_PER_SECOND     50
 #define CYCLES_PER_FRAME      (CPU_CLOCK_FREQUENCY / FRAMES_PER_SECOND)
@@ -36,7 +36,7 @@ char *harddisk = NULL;
 // Number of CPU cycles executed in current frame.
 int quantum = 0; 
 
-// Milliseconds delay per frame taking simulation speed into account.
+// Milliseconds delay per frame taking emulation speed into account.
 int ms_per_frame = MILLISECS_PER_FRAME;
 
 // Delay in milliseconds.
@@ -80,8 +80,8 @@ void cpu_out(BYTE adr, BYTE data) {
   (*ports[adr].out)(data, ports[adr].dev);
 }
 
-// Set simulator speed in percent.
-void set_simulation_speed(int percent) {
+// Set emulator speed in percent.
+void set_emulation_speed(int percent) {
   ms_per_frame = MILLISECS_PER_FRAME * 100 / percent;
   printf("speed: %d%%, %d ms/frame\n", percent, ms_per_frame);
 }
@@ -110,7 +110,7 @@ void cpu_halt() {
   delay(ms_per_frame);
 };
 
-// Initialize RC700 simulator.
+// Initialize RC700 emulator.
 static void init_rc700() {
   int i;
 
@@ -170,7 +170,7 @@ void usage(char *pgm) {
   printf("usage:\t%s [OPTIONS] [IMD FILES...]\n", pgm);
   printf("-monitor     (exit into monitor)\n");
   printf("-suspend     (start suspended)\n");
-  printf("-speed PCT   (set simulation speed)\n");
+  printf("-speed PCT   (set emulation speed)\n");
   printf("-hd IMG      (mount hard disk)\n");
 }
 
@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
   char *s, *p;
   char *pn = argv[0];
 
-  printf("RC700 Simulator version 1.0, Copyright (C) 2014 by Michael Ringgaard\n");
+  printf("RC700 Emulator version 1.0, Copyright (C) 2014 by Michael Ringgaard\n");
   printf("Z80-SIM Release 1.23, Copyright (C) 1987-2014 by Udo Munk\n\n");
   fflush(stdout);
 
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
       } else if (strcmp(argv[i], "-suspend") == 0) {
         suspend = 1;
       } else if (strcmp(argv[i], "-speed") == 0 && i + 1 < argc) {
-        set_simulation_speed(atoi(argv[i++ + 1]));
+        set_emulation_speed(atoi(argv[i++ + 1]));
       } else if (strcmp(argv[i], "-hd") == 0 && i + 1 < argc) {
         harddisk = argv[i++ + 1];
       } else {
@@ -218,11 +218,11 @@ int main(int argc, char *argv[]) {
   sigaction(SIGINT, &sa, NULL);
 #endif
 
-  // Initialize simulator.
+  // Initialize emulator.
   init_rc700();
   rcterm_init();
 
-  // Run simulator.
+  // Run emulator.
   if (suspend) {
     mon();
   } else if (monitor) {
