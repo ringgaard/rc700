@@ -82,7 +82,8 @@ int websock_read(struct websock *ws, int size) {
   left = size;
   while (ws->end - ws->buffer < size) {
     int n = read(ws->sock, ws->end, left);
-    if (n <= 0) return errno == EAGAIN && ws->nbio ? 0 : -1;
+    if (n == 0) return -1;
+    if (n < 0) return errno == EAGAIN && ws->nbio ? 0 : -1;
     left -= n;
     ws->end += n;
   }
