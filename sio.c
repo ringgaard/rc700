@@ -14,9 +14,9 @@
 
 #include "rc700.h"
 
-#define L(x) 
-#define LL(x) 
-#define W(x) 
+#define L(x)
+#define LL(x)
+#define W(x)
 
 #define NUM_SIO_PORTS   2
 
@@ -51,16 +51,131 @@ struct serial_port {
 
 struct serial_port sio[NUM_SIO_PORTS];
 
+void sio_dump_status(BYTE value, BYTE bit, const char *func) {
+  if (value & (1 << bit)) printf(" [D%d: %s]", bit, func);
+}
+
+void sio_dump_read_register(int dev, BYTE reg, BYTE value) {
+  printf("sio%d: read %02X from reg %02X:", dev, value, reg);
+  switch (reg) {
+    case 0:
+      sio_dump_status(value, 0, "Receive Character available");
+      sio_dump_status(value, 1, "Interrupt Pending");
+      sio_dump_status(value, 2, "Transmit Buffer Empty");
+      sio_dump_status(value, 3, "DCD");
+      sio_dump_status(value, 4, "Sync/Hunt Buffer Empty");
+      sio_dump_status(value, 5, "CTS");
+      sio_dump_status(value, 6, "Transmit Underrun EOM");
+      sio_dump_status(value, 7, "Break/Abort");
+      break;
+
+    case 1:
+      sio_dump_status(value, 0, "All sent");
+      printf(" [Residue Code: %02X]", (value >> 1) & 7);
+      sio_dump_status(value, 4, "Parity Error");
+      sio_dump_status(value, 5, "Receiver Overrun Error");
+      sio_dump_status(value, 6, "CRC/Framing Error");
+      sio_dump_status(value, 7, "End of Frame (SDLC)");
+      break;
+
+    case 2:
+      printf(" [Interrupt Vector %02X]", value);
+      break;
+  }
+  printf("\n");
+}
+
+void sio_dump_write_register(int dev, BYTE reg, BYTE value) {
+  printf("sio%d: write %02X to reg %02X:", dev, value, reg);
+  switch (reg) {
+    case 1:
+      sio_dump_status(value, 0, "External Interrupts Enable");
+      sio_dump_status(value, 1, "Transmit Interrupt Enable");
+      sio_dump_status(value, 2, "Status Affects Vector");
+      switch ((value >> 3) & 3) {
+        case 0: printf(" [Receive Interrupts Disabled]"); break;
+        case 1: printf(" [Receive Interrupt On First Character Only]"); break;
+        case 2: printf(" [Interrupt On All Receive Characters, Parity Special]"); break;
+        case 3: printf(" [Interrupt On All Receive Characters]"); break;
+      }
+      sio_dump_status(value, 5, "Wait/Ready on Receive Transmit");
+      sio_dump_status(value, 6, "Wait or Ready Function");
+      sio_dump_status(value, 7, "Wait/Ready Enable");
+      break;
+
+    case 2:
+      printf(" [Interrupt Vector %02X]", value);
+      break;
+
+    case 3:
+      sio_dump_status(value, 0, "Receiver Enable");
+      sio_dump_status(value, 1, "Sync Char Load Inhibit");
+      sio_dump_status(value, 2, "Address Search Mode");
+      sio_dump_status(value, 3, "Receiver CRC Enable");
+      sio_dump_status(value, 4, "Enter Hunt Phase");
+      sio_dump_status(value, 5, "Auto Enables");
+      printf(" [Receiver Bits/Char: %c]", "5768"[value >> 6]);
+      break;
+
+    case 4:
+      sio_dump_status(value, 0, "Parity Enable");
+      printf(" [Parity: %s]", value & 2 ? "even" : "odd");
+      switch ((value >> 2) & 3) {
+        case 0: printf(" [Sync Mode]"); break;
+        case 1: printf(" [1 Stop Bit]"); break;
+        case 2: printf(" [1-1/2 Stop Bits]"); break;
+        case 3: printf(" [2 Stop Bits]"); break;
+      }
+      switch ((value >> 4) & 3) {
+        case 0: printf(" [8-Bit SYNC Character]"); break;
+        case 1: printf(" [16-Bit SYNC Character]"); break;
+        case 2: printf(" [SDLC Mode]"); break;
+        case 3: printf(" [External SYNC Mode]"); break;
+      }
+      switch ((value >> 6) & 3) {
+        case 0: printf(" [X1 Clock Mode]"); break;
+        case 1: printf(" [X16 Clock Mode]"); break;
+        case 2: printf(" [X32 Clock Mode]"); break;
+        case 3: printf(" [X64 Clock Mode]"); break;
+      }
+      break;
+
+    case 5:
+      sio_dump_status(value, 0, "Tx CRC Enable");
+      sio_dump_status(value, 1, "RTS");
+      sio_dump_status(value, 2, "CRC-16/!SDLC");
+      sio_dump_status(value, 3, "Tx Enable");
+      sio_dump_status(value, 4, "Send Break");
+      switch ((value >> 5) & 3) {
+        case 0: printf(" [8-Bit SYNC Character]"); break;
+        case 1: printf(" [16-Bit SYNC Character]"); break;
+        case 2: printf(" [SDLC Mode]"); break;
+        case 3: printf(" [External SYNC Mode]"); break;
+      }
+      sio_dump_status(value, 7, "DTR");
+      break;
+
+    case 6:
+      printf(" [SYNC Bits 0-7: %02X]", value);
+      break;
+
+    case 7:
+      printf(" [SYNC Bits 8-15: %02X]", value);
+      break;
+  }
+  printf("\n");
+}
+
 void sio_check_receive(int dev) {
   if (fifo_empty(&sio[dev].rx)) {
     sio[dev].rr[0] &= ~SIO_R0_RX_AVAIL;
   } else {
     sio[dev].rr[0] |= SIO_R0_RX_AVAIL;
     if (sio[dev].wr[1] & SIO_W1_RX_INT_MODE) {
-      if (!(sio[dev].rr[0] & SIO_R0_INT)) {
+      if (!(sio[0].rr[0] & SIO_R0_INT)) {
         // TODO: Check for Status Affects Vector bit to determine intvec
         L(printf("sio%d: gen intr %02X\n", dev, sio[1].wr[2]));
-        sio[dev].rr[0] |= SIO_R0_INT;
+        sio[0].rr[0] |= SIO_R0_INT;
         interrupt(sio[1].wr[2], dev + 4);
       }
     }
@@ -80,7 +195,7 @@ void sio_reset(int dev) {
 BYTE sio_data_in(int dev) {
   BYTE data;
 
-  sio[dev].rr[0] &= ~SIO_R0_INT;
+  sio[0].rr[0] &= ~SIO_R0_INT;
   if (fifo_empty(&sio[dev].rx)) {
     W(printf("sio%d: rx queue empty\n", dev));
     data = 0;
@@ -95,10 +210,14 @@ BYTE sio_data_in(int dev) {
 
 void sio_data_out(BYTE data, int dev) {
   LL(printf("sio%d: data out %02X\n", dev, data));
-  putchar(data);
+  rcterm_print(data);
   sio[dev].rr[0] |= SIO_R0_TX_PEND;
   if (sio[dev].wr[1] & SIO_W1_TX_INT_ENABLE) {
-    sio[dev].rr[0] |= SIO_R0_INT;
+    // TODO: Check for Status Affects Vector bit to determine intvec
+    if (sio[1].wr[1] & SIO_W1_STATUS_AFFECT_VECTOR) {
+      L(printf("sio%d: status affect vector\n", dev));
+    }
+    sio[0].rr[0] |= SIO_R0_INT;
     interrupt(sio[1].wr[2], dev + 4);
   }
 }
@@ -109,7 +228,7 @@ BYTE sio_ctrl_in(int dev)  {
   LL(printf("sio%d: ctrl in\n", dev));
   ptr = sio[dev].wr[0] & 0x07;
   sio[dev].wr[0] &= ~0x07;
-  L(printf("sio%d: read %02X from reg %d\n", dev, sio[dev].rr[ptr], ptr));
+  L(sio_dump_read_register(dev, ptr, sio[dev].rr[ptr]));
   return sio[dev].rr[ptr];
 }
 
@@ -136,7 +255,9 @@ void sio_ctrl_out(BYTE data, int dev) {
 
       // Reset Ext/Status Interrupts
       case 2: 
-        W(printf("sio%d: reset status, not implemented\n", dev));
+        L(printf("sio%d: reset status\n", dev));
+        if (dev == 0) sio[dev].rr[0] &= ~SIO_R0_INT;
+        sio[dev].rr[0] |= SIO_R0_TX_PEND;
         break;
 
       // Channel reset
@@ -151,8 +272,9 @@ void sio_ctrl_out(BYTE data, int dev) {
         break;
 
       // Reset TxINT Pending
-      case 5: 
-        W(printf("sio%d: reset tx int pending, not implemented\n", dev));
+      case 5:
+        L(printf("sio%d: reset tx int pending\n", dev));
+        sio[0].rr[0] &= ~SIO_R0_INT;
         break;
  
       // Error Reset
@@ -166,7 +288,7 @@ void sio_ctrl_out(BYTE data, int dev) {
         break; 
     }
   } else {
-    L(printf("sio%d: write %02X to reg %02X\n", dev, data, ptr));
+    L(sio_dump_write_register(dev, ptr, data));
   }
 
   sio_check_receive(dev);

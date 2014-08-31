@@ -114,4 +114,5 @@ void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows);
 void rcterm_set_cursor(int type, int underline);
 int rcterm_gotoxy(int col, int row);
 int rcterm_keypressed();
+void rcterm_print(BYTE ch);
 

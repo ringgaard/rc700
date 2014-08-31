@@ -27,12 +27,18 @@
 #define MSG_CURSOR 4
 #define MSG_SCREEN 5
 #define MSG_KEY    6
+#define MSG_PRINT  7
 
 // Directory for disk images.
 char *image_dir = ".";
 
 // WebSocket for communication with client.
 struct websock ws;
+
+// Printer output buffer.
+#define PRINTER_BUFFER_SIZE 80
+BYTE printer_buffer[PRINTER_BUFFER_SIZE];
+int printer_buffer_len = 0;
 
 // I/O handlers for all I/O ports.
 static struct port ports[256];
@@ -81,6 +87,19 @@ void set_emulation_speed(int percent) {
   printf("speed: %d%%, %d ms/frame\n", percent, ms_per_frame);
 }
 
+// Flush printer buffer.
+void flush_printer_buffer() {
+  unsigned char msg;
+
+  if (printer_buffer_len == 0) return;
+  msg = MSG_PRINT;
+  if (websock_send(&ws, WS_OP_BIN, &msg, 1, printer_buffer, printer_buffer_len) < 0) {
+    cpu_error = USERINT;
+    cpu_state = STOPPED;
+  }
+  printer_buffer_len = 0;
+}
+
 // CPU poll handler.
 void cpu_poll(int cycles) {
   int overhead;
@@ -95,6 +114,8 @@ void cpu_poll(int cycles) {
   } else {
     overhead = 0;
   }
+
+  if (printer_buffer_len > 0) flush_printer_buffer();
 
   if (overhead < ms_per_frame) delay(ms_per_frame - overhead);
   quantum -= CYCLES_PER_FRAME;
@@ -221,6 +242,11 @@ int rcterm_keypressed() {
   }
 
   return -1;
+}
+
+void rcterm_print(BYTE ch) {
+  if (printer_buffer_len == PRINTER_BUFFER_SIZE) flush_printer_buffer();
+  printer_buffer[printer_buffer_len++] = ch;
 }
 
 int mount_disk(int drive, char *image) {

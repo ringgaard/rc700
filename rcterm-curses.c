@@ -184,3 +184,7 @@ int rcterm_keypressed() {
   return -1;
 }
 
+void rcterm_print(BYTE ch) {
+  putchar(ch);
+}
+
