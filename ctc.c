@@ -92,7 +92,7 @@ void init_ctc() {
   register_port(0x0e, ctc_in, ctc_out, 2);
   register_port(0x0f, ctc_in, ctc_out, 3);
 
-  // Extra CTC in RC763 interface card.
+  // Extra CTC on RC763 interface card.
   register_port(0x44, ctc_in, ctc_out, 4);
   register_port(0x45, ctc_in, ctc_out, 5);
   register_port(0x46, ctc_in, ctc_out, 6);

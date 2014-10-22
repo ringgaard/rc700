@@ -40,6 +40,11 @@ struct websock ws;
 BYTE printer_buffer[PRINTER_BUFFER_SIZE];
 int printer_buffer_len = 0;
 
+// Input command buffer.
+#define COMMAND_BUFFER_SIZE 127
+BYTE command_buffer[COMMAND_BUFFER_SIZE + 1];
+int command_buffer_len = 0;
+
 // I/O handlers for all I/O ports.
 static struct port ports[256];
 
@@ -49,11 +54,18 @@ static struct port ports[256];
 #define CYCLES_PER_FRAME      (CPU_CLOCK_FREQUENCY / FRAMES_PER_SECOND)
 #define MILLISECS_PER_FRAME   (1000 / FRAMES_PER_SECOND)
 
+// Idle detection.
+#define MAX_IDLE_SECONDS      3600
+#define MAX_IDLE_FRAMES       (MAX_IDLE_SECONDS * FRAMES_PER_SECOND)
+
 // Number of CPU cycles executed in current frame.
 int quantum = 0; 
 
 // Milliseconds delay per frame taking emulation speed into account.
 int ms_per_frame = MILLISECS_PER_FRAME;
+
+// Remaining frames before terminating idle instance.
+int remaining_idle_frames = MAX_IDLE_FRAMES;
 
 // Delay in milliseconds.
 void delay(int ms) {
@@ -85,6 +97,26 @@ void cpu_out(BYTE adr, BYTE data) {
 void set_emulation_speed(int percent) {
   ms_per_frame = MILLISECS_PER_FRAME * 100 / percent;
   printf("speed: %d%%, %d ms/frame\n", percent, ms_per_frame);
+}
+
+// Log message to console.
+void logmsg(const char *fmt, ...) {
+  va_list args;
+  char buffer[1024];
+  time_t now;
+  struct tm tm;
+
+  va_start(args, fmt);
+  vsprintf(buffer, fmt, args);
+  va_end(args);
+
+  now = time(NULL);
+  localtime_r(&now, &tm);
+
+  printf("%04d/%02d/%02d %02d:%02d:%02d [%d] %s\n",
+         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, 
+         tm.tm_hour, tm.tm_min, tm.tm_sec, getpid(), buffer);
+  fflush(stdout);
 }
 
 // Flush printer buffer.
@@ -119,32 +151,18 @@ void cpu_poll(int cycles) {
 
   if (overhead < ms_per_frame) delay(ms_per_frame - overhead);
   quantum -= CYCLES_PER_FRAME;
+
+  if (--remaining_idle_frames < 0) {
+    logmsg("terminate due to lack of activity");
+    cpu_error = USERINT;
+    cpu_state = STOPPED;
+  }
 }
 
 // CPU halt handler.
 void cpu_halt() {
   delay(ms_per_frame);
 };
-
-// Log message to console.
-void logmsg(const char *fmt, ...) {
-  va_list args;
-  char buffer[1024];
-  time_t now;
-  struct tm tm;
-
-  va_start(args, fmt);
-  vsprintf(buffer, fmt, args);
-  va_end(args);
-
-  now = time(NULL);
-  localtime_r(&now, &tm);
-
-  printf("%04d/%02d/%02d %02d:%02d:%02d [%d] %s\n",
-         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, 
-         tm.tm_hour, tm.tm_min, tm.tm_sec, getpid(), buffer);
-  fflush(stdout);
-}
 
 // Initialize RC700 emulator.
 static void init_rc700() {
@@ -227,10 +245,21 @@ int rcterm_keypressed() {
   }
   if (rc <= 0) return -1;
 
+  // Reset idle watchdog.
+  remaining_idle_frames = MAX_IDLE_FRAMES;
+
   // Check for key press event.
   if (ws.end - ws.buffer == 2 && ws.buffer[0] == MSG_KEY) {
     int key = ws.buffer[1];
-    //logmsg("key %d", key);
+    if (key >= ' ' && key < 127) {
+      if (command_buffer_len < COMMAND_BUFFER_SIZE) {
+        command_buffer[command_buffer_len++] = key;
+      }
+    } else if (key == 13) {
+      command_buffer[command_buffer_len] = 0;
+      logmsg("command: %s", command_buffer);
+      command_buffer_len = 0;
+    }
     return key;
   }
 
