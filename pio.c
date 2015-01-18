@@ -56,6 +56,10 @@ void pio_receive(int dev, char *data, int size) {
   if (!fifo_empty(&pio[dev].rx)) pio_strobe(dev);
 }
 
+int pio_ready(int dev) {
+  return fifo_empty(&pio[dev].rx);
+}
+
 BYTE pio_data_in(int dev) {
   BYTE data;
   
@@ -111,6 +115,7 @@ void pio_ctrl_out(BYTE data, int dev) {
 int pio_poll() {
   char c;
   int ch = rcterm_keypressed();
+  if (ch == -1 && pio_ready(0)) ch = rcterm_read_clipboard();
   if (ch != (ch & 0xFF)) return 0;
   c = ch;
   L(printf("pio: key 0x%02x pressed\n", ch));

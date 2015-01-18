@@ -188,3 +188,7 @@ void rcterm_print(BYTE ch) {
   putchar(ch);
 }
 
+int rcterm_read_clipboard() {
+  return -1;
+}
+

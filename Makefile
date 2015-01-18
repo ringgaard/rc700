@@ -16,8 +16,11 @@ AUTOLOAD=rob358
 clean:
 	rm rc700 $(AUTOLOAD).c
 
-rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c $(AUTOLOAD).c
-	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sdl.c -lSDL
+rc700: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c screen.c $(AUTOLOAD).c
+	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sdl.c screen.c -lSDL
+
+rc700-sdl2: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl2.c screen.c $(AUTOLOAD).c
+	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sdl2.c screen.c -lSDL2
 
 rc700-curses: $(SRCFILES) $(HDRFILES) rc700.c rcterm-curses.c $(AUTOLOAD).c
 	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-curses.c -lncursesw

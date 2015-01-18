@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "rc700.h"
 
@@ -27,6 +28,7 @@
 #define FTP_STAT_EOF        0xff
 
 #define FTP_FNAME_SIZE   256
+#define FTP_FN_LOWERCASE
 
 struct ftp {
   BYTE status;
@@ -139,7 +141,11 @@ void ftp_data_out(BYTE data, int dev) {
   LL(printf("ftp: data out %x\n", data));
   if (ftp.fnmode) {
     if (ftp.fnidx < FTP_FNAME_SIZE - 1) {
+#ifdef FTP_FN_LOWERCASE
+      ftp.filename[ftp.fnidx++] = tolower(data);
+#else
       ftp.filename[ftp.fnidx++] = data;
+#endif
       ftp.status = 0;
     } else {
       ftp.status = FTP_STAT_OVERFLOW;

@@ -278,6 +278,10 @@ void rcterm_print(BYTE ch) {
   printer_buffer[printer_buffer_len++] = ch;
 }
 
+int rcterm_read_clipboard() {
+  return -1;
+}
+
 int mount_disk(int drive, char *image) {
   char *p;
   char path[256];

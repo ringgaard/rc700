@@ -1,9 +1,9 @@
 #!/bin/sh
 
-echo "===== Build RC700 simulator for Linux"
+echo "===== Build RC700 emulator for Linux"
 make rc700
 
-echo "===== Build RC700 simulator for Windows"
+echo "===== Build RC700 emulator for Windows"
 wine cmd /C winbuild.cmd
 
 echo "===== Make rc700-src.zip"
@@ -21,8 +21,8 @@ zip /mnt/www/rc702/rc700-win.zip rc700.exe rccpm22.imd SDL.dll
 echo "===== Make rc700-win-setup.exe"
 wine ../innosetup/ISCC rc700.iss /o.
 osslsigncode sign -pkcs12 ../certum.pfx -pass hemlig \
-    -n "RC700 Simulator" \
-    -i "http://www.jbox.dk/rc702/simulator.shtm" \
+    -n "RC700 Emulator" \
+    -i "http://www.jbox.dk/rc702/emulator.shtm" \
     -in rc700-win-setup.exe \
     -out /mnt/www/rc702/rc700-win-setup.exe
 

@@ -13,7 +13,7 @@
 
 #include "rc700.h"
 
-#define L(x)
+#define L(x) x
 #define LL(x)
 #define W(x) x
 
@@ -113,7 +113,7 @@ void wdc_read() {
   while (n > 0 && !dma_completed(0)) {
     if (c < CYLS && h < HEADS && s < SECTORS) {
       // Read sector from disk.
-      L(printf("wdc: read sector C=%d,H=%d,S=%d: read %d bytes to %04Xs\n", c, s, s, size, dma_address(0)));
+      L(printf("wdc: read sector C=%d,H=%d,S=%d: read %d bytes to %04X\n", c, h, s, size, dma_address(0)));
       if (fseek(drive, ((((c * HEADS) + h) * SECTORS + s) * SECTSIZE), SEEK_SET) == -1) {
         W(printf("wdc%d: read seek error %d sector C=%d,H=%d,S=%d\n", d, errno, c, h, s));
         wdc.status |= WDC_STAT_ERROR;
@@ -148,7 +148,7 @@ void wdc_write() {
   int s = wdc.reg[WDC_REG_SECTNO];
   int n = wdc.reg[WDC_REG_SECTCNT];
   int sectsize = sector_size[(wdc.reg[WDC_REG_SDH] >> 5) & 0x03];
-  L(printf("wdc: write drive=%d c=%d h=%d, s=%d, n=%d, sector size %d\n", d, c, h, s, n, size));
+  L(printf("wdc: write drive=%d c=%d h=%d, s=%d, n=%d, sector size %d\n", d, c, h, s, n, sectsize));
 
   // Get mounted disk image for drive.
   drive = wdc.drive[d];
