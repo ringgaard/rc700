@@ -117,18 +117,12 @@ typedef unsigned int pixel_t;
 #define SCREEN_HEIGHT (25 * 11 * YSCALE)
 #define SCREEN_BPP    32
 
-// RC752 amber colors.
-#define HI_COLOR 0xFFCC66
-#define FG_COLOR 0xCC9933
-#define BG_COLOR 0x552200
-#define MI_COLOR 0x996611
-
 extern int cursor_type;
 extern int under_line;
 extern int cur_x;
 extern int cur_y;
 
-void draw_screen(pixel_t *bitmap, unsigned char *text);
+void draw_screen(pixel_t *bitmap, pixel_t *palette, unsigned char *text);
 
 // rcterm-*.c
 

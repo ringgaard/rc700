@@ -22,13 +22,36 @@
 
 static SDL_Surface *term = NULL;
 
+// RC752 amber colors.
+#define HI_COLOR 0xFFCC66
+#define FG_COLOR 0xCC9933
+#define BG_COLOR 0x552200
+#define MI_COLOR 0x996611
+
+pixel_t palette[16] = {
+  BG_COLOR, BG_COLOR, BG_COLOR, 0,
+  FG_COLOR, MI_COLOR, BG_COLOR, 0,
+  BG_COLOR, MI_COLOR, FG_COLOR, 0,
+  FG_COLOR, FG_COLOR, FG_COLOR, 0,
+};
+
+pixel_t screen_color(pixel_t rgb) {
+  BYTE r = (rgb >> 16) & 0xFF;
+  BYTE g = (rgb >> 8) & 0xFF;
+  BYTE b = rgb & 0xFF;
+  return SDL_MapRGB(term->format, r, g, b);
+}
+
 void rcterm_init() {
+  int i;
+
   L(printf("rcterm: init\n"));
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
   term = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_SWSURFACE | SDL_DOUBLEBUF);
   SDL_WM_SetCaption("RC700", NULL);
   SDL_EnableUNICODE(SDL_ENABLE);
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+  for (i = 0; i < 16; ++i) palette[i] = screen_color(palette[i]);
 }
 
 void rcterm_exit() {
@@ -40,14 +63,14 @@ void rcterm_exit() {
 
 void rcterm_clear_screen(int cols, int rows) {
   L(printf("rcterm: clear screen\n"));
-  SDL_FillRect(term, NULL, BG_COLOR);
+  SDL_FillRect(term, NULL, screen_color(BG_COLOR));
   SDL_Flip(term);
 }
 
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
   L(printf("rcterm: screen at %04x cols=%d, rows=%d\n", screen - ram, cols, rows));
   SDL_LockSurface(term);
-  draw_screen(term->pixels, screen);
+  draw_screen(term->pixels, palette, screen);
   SDL_UnlockSurface(term);
   SDL_Flip(term);
 }

@@ -55,14 +55,7 @@ unsigned char blank[] = {
   0x00, 0x00, 0x00, 0x00,
 };
 
-pixel_t palette[16] = {
-  BG_COLOR, BG_COLOR, BG_COLOR, 0,
-  FG_COLOR, MI_COLOR, BG_COLOR, 0,
-  BG_COLOR, MI_COLOR, FG_COLOR, 0,
-  FG_COLOR, FG_COLOR, FG_COLOR, 0,
-};
-
-void draw_screen(pixel_t *bitmap, unsigned char *text) {
+void draw_screen(pixel_t *bitmap, pixel_t *palette, unsigned char *text) {
   int row, col, line, blk, grp;
   int clreos, clreol, uline;
   unsigned char **c;
