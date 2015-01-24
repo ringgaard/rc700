@@ -8,7 +8,7 @@ wine cmd /C winbuild.cmd
 
 echo "===== Make rc700-src.zip"
 rm -f /mnt/www/rc702/rc700-src.zip
-zip /mnt/www/rc702/rc700-src.zip *.c *.h *.ico *.rc Makefile Makefile.win *.rom rccpm22.imd autoload.imd COPYING
+zip /mnt/www/rc702/rc700-src.zip *.c *.h *.ico *.rc *.m Makefile* *.rom rccpm22.imd autoload.imd COPYING
 
 echo "===== Make rc700.zip"
 rm -f /mnt/www/rc702/rc700.zip
@@ -25,4 +25,5 @@ osslsigncode sign -pkcs12 ../certum.pfx -pass hemlig \
     -i "http://www.jbox.dk/rc702/emulator.shtm" \
     -in rc700-win-setup.exe \
     -out /mnt/www/rc702/rc700-win-setup.exe
+rm *.exe *.obj *.res
 
