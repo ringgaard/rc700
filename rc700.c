@@ -179,7 +179,11 @@ void usage(char *pgm) {
   printf("-hd IMG      (mount hard disk)\n");
 }
 
+#ifdef __APPLE__
+int SDL_main(int argc, char *argv[]) {
+#else
 int main(int argc, char *argv[]) {
+#endif
 #ifndef WIN32
   static struct sigaction sa;
 #endif
