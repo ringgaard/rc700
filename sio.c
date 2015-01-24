@@ -174,7 +174,7 @@ void sio_check_receive(int dev) {
     if (sio[dev].wr[1] & SIO_W1_RX_INT_MODE) {
       if (!(sio[0].rr[0] & SIO_R0_INT)) {
         // TODO: Check for Status Affects Vector bit to determine intvec
-        L(printf("sio%d: gen intr %02X\n", dev, sio[1].wr[2]));
+        L(printf("sio%d: gen rx intr %02X\n", dev, sio[1].wr[2]));
         sio[0].rr[0] |= SIO_R0_INT;
         interrupt(sio[1].wr[2], dev + 4);
       }
@@ -217,6 +217,7 @@ void sio_data_out(BYTE data, int dev) {
     if (sio[1].wr[1] & SIO_W1_STATUS_AFFECT_VECTOR) {
       L(printf("sio%d: status affect vector\n", dev));
     }
+    L(printf("sio%d: gen tx intr %02X\n", dev, sio[1].wr[2]));
     sio[0].rr[0] |= SIO_R0_INT;
     interrupt(sio[1].wr[2], dev + 4);
   }
@@ -275,6 +276,7 @@ void sio_ctrl_out(BYTE data, int dev) {
       case 5:
         L(printf("sio%d: reset tx int pending\n", dev));
         sio[0].rr[0] &= ~SIO_R0_INT;
+        sio[dev].rr[0] &= ~SIO_R0_TX_PEND;
         break;
  
       // Error Reset

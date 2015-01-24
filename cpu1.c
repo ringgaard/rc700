@@ -51,7 +51,7 @@ static int op_nop() {
 
 // HALT
 static int op_halt() {
-  while (int_type == 0) {
+  while (int_type == 0 && cpu_state == CONTIN_RUN) {
     cpu_halt();
     R += 99999;
     cpu_poll(99999);
@@ -628,6 +628,7 @@ static int op_ldhlnn() {
 static int op_ldspnn() {
   STACK = ram + *PC++;
   STACK += *PC++ << 8;
+
   return 10;
 }
 
@@ -2983,7 +2984,8 @@ void cpu() {
               *--STACK = (PC - ram);
               PC = ram + (I << 8) + int_vec;
               PC = ram + *PC + (*(PC + 1) << 8);
-              //printf("cpu: I=%x vec=%x isr %04X\n", I, int_vec, PC - ram);
+              //printf("cpu: I=%x vec=%x isr %04X\n", 
+              //       I, int_vec, (WORD) (PC - ram));
               break;
           }
           break;

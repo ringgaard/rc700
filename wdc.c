@@ -53,7 +53,7 @@ struct winchester_disk_controller {
   BYTE status;
   BYTE reg[WDC_NUM_REGS];
   FILE *drive[MAX_DRIVES];
-  char buffer[SECTSIZE];
+  BYTE buffer[SECTSIZE];
 };
 
 int sector_size[4] = {256, 512, 1024, 128};

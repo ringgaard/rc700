@@ -107,7 +107,12 @@ void cpu_poll(int cycles) {
 
 // CPU halt handler.
 void cpu_halt() {
+#ifdef SBSIZE
+  cpu_error = OPHALT;
+  cpu_state = STOPPED;
+#else
   delay(ms_per_frame);
+#endif
 };
 
 // Initialize RC700 emulator.

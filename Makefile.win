@@ -14,12 +14,16 @@ SRCFILES=cpu0.c cpu1.c cpu2.c cpu3.c cpu4.c cpu5.c cpu6.c cpu7.c  \
 HDRFILES=cpu.h rc700.h disk.h
 AUTOLOAD=rob358
 SDL=SDL-1.2.15
+SDL2=SDL2-2.0.3
 
 rc700.res: rc700.rc
 	$(RC) /fo rc700.res rc700.rc
 
-rc700.exe: $(SRCFILES) $(HDRFILES) rcterm-sdl.c rc700.res $(AUTOLOAD).c
-	$(CC) -o $@ /O2 /D WIN32 $(SRCFILES) $(AUTOLOAD).c rcterm-sdl.c rc700.res /I $(SDL)/include /link $(SDL)/lib/x86/SDL.lib
+rc700.exe: $(SRCFILES) $(HDRFILES) rcterm-sdl.c screen.c rc700.res $(AUTOLOAD).c
+	$(CC) -o $@ /O2 /D WIN32 $(SRCFILES) $(AUTOLOAD).c rcterm-sdl.c screen.c rc700.res /I $(SDL)/include /link $(SDL)/lib/x86/SDL.lib
+
+rc700-sdl2.exe: $(SRCFILES) $(HDRFILES) rcterm-sdl2.c screen.c rc700.res $(AUTOLOAD).c
+	$(CC) -o $@ /O2 /D WIN32 $(SRCFILES) $(AUTOLOAD).c rcterm-sdl2.c screen.c rc700.res /I $(SDL2)/include /link $(SDL2)/lib/x86/SDL2.lib
 
 rom2struct.exe: rom2struct.c
 	$(CC) -o $@ rom2struct.c

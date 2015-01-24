@@ -57,7 +57,7 @@ int rcchars[256] = {
   /* F8 */ NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR, NOCHAR,
 };
 
-static WINDOW *term;
+static WINDOW *term = NULL;
 static int xofs = 0;
 static int yofs = 0;
 

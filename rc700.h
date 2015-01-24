@@ -50,7 +50,7 @@ void init_rom();
 // pio.c
 
 void init_pio();
-int poll_pio();
+int pio_poll();
 
 // sio.c
 
@@ -73,7 +73,7 @@ int dma_write_ready(int channel);
 // crt.c
 
 void init_crt();
-int poll_crt();
+int crt_poll();
 void dump_screen();
 
 // fdc.c
@@ -88,6 +88,7 @@ void fdc_flush_disk(int drive);
 
 // wdc.c
 
+void init_wdc();
 int wdc_mount_harddisk(int drive, char *imagefile);
 
 // ftp.c

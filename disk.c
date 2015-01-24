@@ -261,7 +261,7 @@ int save_disk_image(struct disk *disk) {
   return 0;
 }
 
-int write_disk_sector(struct disk *disk, int c, int h, int s, char *data, int size) {
+int write_disk_sector(struct disk *disk, int c, int h, int s, BYTE *data, int size) {
   struct track *track = &disk->tracks[c][h];
   struct sector *sector = &track->sectors[s];
 

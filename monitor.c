@@ -16,7 +16,6 @@
 #include <ctype.h>
 #include <signal.h>
 
-#include "cpu.h"
 #include "rc700.h"
 
 #define CMDLEN     80    // Length of command buffers etc.

@@ -41,6 +41,6 @@ struct disk *load_disk_image(char *imagefile);
 int save_disk_image(struct disk *disk);
 void free_disk_image(struct disk *disk);
 
-int write_disk_sector(struct disk *disk, int c, int h, int s, char *data, int size);
+int write_disk_sector(struct disk *disk, int c, int h, int s, BYTE *data, int size);
 int fill_disk_sector(struct disk *disk, int c, int h, int s, BYTE fill);
 
