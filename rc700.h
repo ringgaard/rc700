@@ -108,7 +108,8 @@ void disasm(unsigned char **p, int adr);
 
 // screen.c
 
-typedef unsigned int pixel_t;
+typedef unsigned int pixel32_t;
+typedef unsigned short pixel16_t;
 
 #define XSCALE 3/2
 #define YSCALE 2
@@ -122,7 +123,8 @@ extern int under_line;
 extern int cur_x;
 extern int cur_y;
 
-void draw_screen(pixel_t *bitmap, pixel_t *palette, unsigned char *text);
+void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, unsigned char *text);
+void draw_screen16(pixel16_t *bitmap, pixel16_t *palette, int pitch, int xmargin, int ymargin, unsigned char *text);
 
 // rcterm-*.c
 

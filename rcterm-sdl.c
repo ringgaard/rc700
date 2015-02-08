@@ -28,14 +28,14 @@ static SDL_Surface *term = NULL;
 #define BG_COLOR 0x552200
 #define MI_COLOR 0x996611
 
-pixel_t palette[16] = {
+pixel32_t palette[16] = {
   BG_COLOR, BG_COLOR, BG_COLOR, 0,
   FG_COLOR, MI_COLOR, BG_COLOR, 0,
   BG_COLOR, MI_COLOR, FG_COLOR, 0,
   FG_COLOR, FG_COLOR, FG_COLOR, 0,
 };
 
-pixel_t screen_color(pixel_t rgb) {
+pixel32_t screen_color(pixel32_t rgb) {
   BYTE r = (rgb >> 16) & 0xFF;
   BYTE g = (rgb >> 8) & 0xFF;
   BYTE b = rgb & 0xFF;
@@ -70,7 +70,7 @@ void rcterm_clear_screen(int cols, int rows) {
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
   L(printf("rcterm: screen at %04x cols=%d, rows=%d\n", screen - ram, cols, rows));
   SDL_LockSurface(term);
-  draw_screen(term->pixels, palette, screen);
+  draw_screen32(term->pixels, palette, screen);
   SDL_UnlockSurface(term);
   SDL_Flip(term);
 }

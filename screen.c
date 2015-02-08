@@ -55,7 +55,7 @@ unsigned char blank[] = {
   0x00, 0x00, 0x00, 0x00,
 };
 
-void draw_screen(pixel_t *bitmap, pixel_t *palette, unsigned char *text) {
+void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, unsigned char *text) {
   int row, col, line, blk, grp;
   int clreos, clreol, uline;
   unsigned char **c;
@@ -64,8 +64,8 @@ void draw_screen(pixel_t *bitmap, pixel_t *palette, unsigned char *text) {
   unsigned char ch;
   unsigned char m;
   unsigned char pixels;
-  pixel_t mask;
-  pixel_t *begin;
+  pixel32_t mask;
+  pixel32_t *begin;
   unsigned char *charmem;
   unsigned char *cell[80];
   unsigned char attr[80];
@@ -131,7 +131,7 @@ void draw_screen(pixel_t *bitmap, pixel_t *palette, unsigned char *text) {
         for (grp = 14; grp > 0; --grp) {
           // Generate three screen pixels per character pixel pair.
           int color = mask & 0x03;
-          pixel_t *p = palette + (color << 2);
+          pixel32_t *p = palette + (color << 2);
           *bitmap++ = *p++;
           *bitmap++ = *p++;
           *bitmap++ = *p++;
@@ -142,6 +142,102 @@ void draw_screen(pixel_t *bitmap, pixel_t *palette, unsigned char *text) {
       // Duplicate previous pixel line.
       memcpy(bitmap, begin, 40 * 3 * 7 * 4);
       bitmap += 40 * 3 * 7;
+    }
+  }
+}
+
+void draw_screen16(pixel16_t *bitmap, pixel16_t *palette, int pitch, int xmargin, int ymargin, unsigned char *text) {
+  int row, col, line, blk, grp;
+  int clreos, clreol, uline;
+  unsigned char **c;
+  unsigned char *a;
+  unsigned char mode;
+  unsigned char ch;
+  unsigned char m;
+  unsigned char pixels;
+  pixel32_t mask;
+  pixel16_t *begin;
+  pixel16_t *curpix;
+  unsigned char *charmem;
+  unsigned char *cell[80];
+  unsigned char attr[80];
+
+  // Skip margins.
+  bitmap += pitch * ymargin + xmargin;
+
+  // Generate 25 lines of text.
+  mode = 0;
+  clreos = 0;
+  uline = 10 - under_line;
+  for (row = 0; row < 25; ++row) {
+    // Set up pointers into the character cell ROM.
+    c = cell;
+    a = attr;
+    clreol = clreos;
+    charmem = mode & ATTR_SEMI ? charram : charrom;
+    for (col = 0; col < 80; ++col) {
+      ch = *text++;
+      if (ch & ATTR_MODE) {
+        if ((ch & ATTR_SPECIAL) == ATTR_SPECIAL) {
+          switch (ch) {
+            case ATTR_CLREOL: clreol = 1; break;
+            case ATTR_CLREOS: clreos = 1; break;
+          }
+        } else {
+          mode = ch & (ATTR_HIGHLIGHT | ATTR_BLINK | ATTR_SEMI | ATTR_REVERSE | ATTR_UNDERLINE);
+          charmem = mode & ATTR_SEMI ? charram : charrom;
+        }
+        *a++ = 0;
+        *c++ = blank;
+      } else if (clreol) {
+        *a++ = 0;
+        *c++ = blank;
+      } else {
+        m = mode;
+        if (col == cur_x && row == cur_y) {
+          m ^= (cursor_type & 0x01) ? ATTR_UNDERLINE : ATTR_REVERSE;
+        }
+        *a++ = m;
+        *c++ = charmem + (ch << 4);
+      }
+    }
+    
+    // Each character has 11 lines.
+    for (line = 11; line > 0; --line) {
+      begin = curpix = bitmap;
+      c = cell;
+      
+      // Generate 20 * 4 = 80 characters per line.
+      a = attr;
+      for (blk = 20; blk > 0; --blk) {
+        // Fetch next 4 characters, each 7 pixels wide.
+        mask = 0;
+        for (grp = 4; grp > 0; --grp) {
+          pixels = *(*c++)++;
+          m = *a++;
+          if (m) {
+            if (m & ATTR_UNDERLINE && line == uline) pixels = 0x7F;
+            if (m & ATTR_REVERSE) pixels ^= 0x7F;
+          }
+          mask = (mask >> 7) | (pixels << 21);
+        }
+
+        // Generate one pixel at a time.
+        for (grp = 28; grp > 0; --grp) {
+          // Generate two screen pixels per character pixel.
+          pixel16_t color = palette[mask & 0x01];
+          *curpix++ = color;
+          *curpix++ = color;
+          mask >>= 1;
+        }
+      }
+
+      // Duplicate previous pixel line twice.
+      bitmap += pitch;
+      memcpy(bitmap, begin, 80 * 7 * 2 * sizeof(pixel16_t));
+      bitmap += pitch;
+      memcpy(bitmap, begin, 80 * 7 * 2 * sizeof(pixel16_t));
+      bitmap += pitch;
     }
   }
 }

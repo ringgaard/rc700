@@ -13,7 +13,7 @@
 
 #include "rc700.h"
 
-#define L(x) x
+#define L(x)
 #define LL(x)
 #define W(x) x
 

@@ -1,0 +1,28 @@
+;
+; File list for bare metal RC700 emulator floppy
+;
+
+; Directories
+
+/bin
+/boot
+/etc
+/dev
+/proc
+/var
+
+; Boot files
+
+/boot/boot         ../sanos/linux/install/boot/boot
+/boot/osldr.dll    ../sanos/linux/install/boot/osldr.dll
+/boot/os.dll       ../sanos/linux/install/boot/os.dll
+/boot/krnl.ini     ../sanos/build/krnl.ini
+
+; Configuration files
+
+/etc/os.ini        os.ini
+
+; Application
+/bin/rc700.exe     rc700-sanos.exe
+/var/floppy.imd    rccpm22.imd
+

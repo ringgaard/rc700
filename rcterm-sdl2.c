@@ -31,29 +31,45 @@ static BYTE *clipboard = NULL;
 static BYTE *clipboard_current = NULL;
 static BYTE *clipboard_end = NULL;
 
+// RC752 amber colors.
+#define HI_COLOR 0xFFCC66
+#define FG_COLOR 0xCC9933
+#define BG_COLOR 0x552200
+#define MI_COLOR 0x996611
+
+pixel32_t palette[16] = {
+  BG_COLOR, BG_COLOR, BG_COLOR, 0,
+  FG_COLOR, MI_COLOR, BG_COLOR, 0,
+  BG_COLOR, MI_COLOR, FG_COLOR, 0,
+  FG_COLOR, FG_COLOR, FG_COLOR, 0,
+};
+
+pixel32_t screen_color(pixel32_t rgb) {
+  BYTE r = (rgb >> 16) & 0xFF;
+  BYTE g = (rgb >> 8) & 0xFF;
+  BYTE b = rgb & 0xFF;
+  return SDL_MapRGB(term->format, r, g, b);
+}
+
 void rcterm_init() {
+  int i;
+
   L(printf("rcterm: init\n"));
   memset(&kbdbuf, 0, sizeof(kbdbuf));
 
   SDL_Init(SDL_INIT_VIDEO);
-  window = 
-    SDL_CreateWindow("RC700",
-                     SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                     SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-  renderer = 
-    SDL_CreateRenderer(window, -1, 
-                       SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  window = SDL_CreateWindow("RC700",
+                            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                            SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+  renderer =  SDL_CreateRenderer(window, -1, 0);
+  texture = SDL_CreateTexture(renderer,
+                              SDL_PIXELFORMAT_ARGB8888,
+                              SDL_TEXTUREACCESS_STREAMING,
+                              SCREEN_WIDTH, SCREEN_HEIGHT);
+  term = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP,
+                              0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
-
-  texture =
-    SDL_CreateTexture(renderer,
-                      SDL_PIXELFORMAT_ARGB8888,
-                      SDL_TEXTUREACCESS_STREAMING,
-                      SCREEN_WIDTH, SCREEN_HEIGHT);
-
-  term = 
-    SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP,
-                         0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+  for (i = 0; i < 16; ++i) palette[i] = screen_color(palette[i]);
 }
 
 void rcterm_exit() {
@@ -66,26 +82,33 @@ void rcterm_exit() {
   SDL_Quit();
 }
 
-void update_screen() {
-  SDL_UpdateTexture(texture, NULL, term->pixels, term->pitch);
-  SDL_RenderClear(renderer);
+void rcterm_clear_screen(int cols, int rows) {
+  L(printf("rcterm: clear screen\n"));
+  SDL_FillRect(term, NULL, screen_color(BG_COLOR));
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
 }
 
-void rcterm_clear_screen(int cols, int rows) {
-  L(printf("rcterm: clear screen\n"));
-  SDL_FillRect(term, NULL, BG_COLOR);
-  update_screen();
-}
-
-
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
   L(printf("rcterm: screen at %04x cols=%d, rows=%d\n", screen - ram, cols, rows));
-  SDL_LockSurface(term);
-  draw_screen(term->pixels, screen);
-  SDL_UnlockSurface(term);
-  update_screen();
+#if 0
+  pixel32_t *pixels;
+  int pitch;
+
+  SDL_LockTexture(texture, NULL, (void *) &pixels, &pitch);
+  draw_screen32(pixels, palette, screen);
+  SDL_UnlockTexture(texture);
+
+  //SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_RenderPresent(renderer);
+
+#else
+  draw_screen32(term->pixels, palette, screen);
+  SDL_UpdateTexture(texture, NULL, term->pixels, term->pitch);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_RenderPresent(renderer);
+#endif
 }
 
 void rcterm_set_cursor(int type, int underline) {
@@ -135,7 +158,7 @@ void paste_clipboard() {
   //for (p = text; *p; p++) if (*p == '\n') newlines++;
 
   //clipboard = malloc(strlen(text) + newlines * NUL_FILLERS);
-  clipboard = malloc(strlen(text) * (1 + NUL_FILLERS));
+  clipboard = (char *) malloc(strlen(text) * (1 + NUL_FILLERS));
   p = text;
   q = clipboard;
   while (*p) {

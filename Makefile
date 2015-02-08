@@ -25,6 +25,9 @@ rc700-sdl2: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl2.c screen.c $(AUTOLOAD).c
 rc700-curses: $(SRCFILES) $(HDRFILES) rc700.c rcterm-curses.c $(AUTOLOAD).c
 	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-curses.c -lncursesw
 
+rc700-vt100: $(SRCFILES) $(HDRFILES) rc700.c rcterm-vt100.c $(AUTOLOAD).c
+	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-vt100.c
+
 rc700d: $(SRCFILES) $(HDRFILES) rc700d.c websock.c sha1.c sha1.h $(AUTOLOAD).c
 	$(CC) -m32 -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700d.c websock.c sha1.c
 
@@ -63,4 +66,16 @@ phe358.c: rom2struct phe358.rom
 
 rc700-memdisk: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sdl.c phe358.c memdisk.c
 	$(CC) -o $@ -O3 -Wno-unused-result -DHAS_MEMDISK -DPROM0=phe358 $(SRCFILES) phe358.c memdisk.c rc700.c rcterm-sdl.c -lSDL
+
+SANOS=../sanos
+INSTALL=$(SANOS)/linux/install
+TCC=$(SANOS)/linux/tools/cc
+TCCFLAGS=-B $(SANOS)/linux/install/usr
+MKDFS=$(SANOS)/linux/tools/mkdfs
+
+rc700-sanos.exe: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sanos.c screen.c $(AUTOLOAD).c
+	$(TCC) -o $@ $(TCCFLAGS) -I .. $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sanos.c screen.c 
+
+rc700.flp: rc700-sanos.exe rc700.lst
+	$(MKDFS) -d rc700.flp -b $(INSTALL)/boot/boot -l $(INSTALL)/boot/osldr.dll -k $(INSTALL)/boot/krnl.dll -K video=1280x1024x16 -c 1440 -i -f -S . -F rc700.lst
 
