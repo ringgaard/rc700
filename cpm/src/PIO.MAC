@@ -1,0 +1,60 @@
+	SUBTTL	Z-80 PIO DRIVER
+;=========================================================
+;= Z80 PIO DRIVER                                        =
+;=========================================================
+
+KEYFLG:DB	0		; KEYBOARD BUSY FLAG (0=BUSY)
+PARFLG:DB	0		; CHANNEL B BUSY FLAG (0=BUSY)
+
+;=========================================================
+;= CHANNEL A (KEYBOARD)                                  =
+;=========================================================
+
+CONST:	LD	A,(KEYFLG)	;
+	RET
+
+CONIN:	LD	A,(KEYFLG)	;
+	OR	A		;
+	JP	Z,CONIN		; WHILE KEYBOARD_BUSY DO;
+	DI			;
+	XOR	A		;
+	LD	(KEYFLG),A	; KEYBOARD_BUSY:=TRUE;
+	EI			;
+	IN	A,(PIOAD)	; A := CONVERT(CHAR);
+	LD	C,A		;
+	LD	HL,INCONV	;
+	CALL	CON1		;
+	RET			;
+
+	PAGE
+
+;=========================================================
+;= CHANNEL A (KEYBOARD) INTERRUPT ROUTINE                =
+;=========================================================
+
+KEYIT:	LD	(SP_SAV),SP	; SAVE ACCUMULATOR AND FLAGS
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	LD	A,0FFH		;
+	LD	(KEYFLG),A	;
+	POP	AF		; RESTORE ACCUMULATOR AND FLAGS
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+;=========================================================
+;= CHANNEL B INTERRUPT ROUTINE                           =
+;=========================================================
+
+PARIN:	LD	(SP_SAV),SP	; SAVE ACCUMULATOR AND FLAGS
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	LD	A,0FFH		;
+	LD	(PARFLG),A	;
+	POP	AF		; RESTORE ACCUMULATOR AND FLAGS
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+	PAGE
+

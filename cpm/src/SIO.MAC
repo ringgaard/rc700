@@ -1,0 +1,215 @@
+	SUBTTL	Z-80 SIO DRIVER
+;================================================
+;= Z80 SIO DRIVER                               =
+;================================================
+
+PRTFLG:	DB	0FFH	; PRINTER BUSY FLAG (0=BUSY)
+RDRFLG:	DB	0FFH	; READER BUSY FLAG (0=BUSY)
+PTPFLG:	DB	0FFH	; PUNCH BUSY FLAG (0=BUSY)
+
+CHARA:	DB	000H	; SIO CHANNEL A RECEIVE BUFFER
+CHARB:	DB	000H	; SIO CHANNEL B RECEIVE BUFFER
+
+RR0_A:	DB	000H	; SIO CH. A READ REGISTER 0
+RR1_A:	DB	000H	; SIO CH. A READ REGISTER 1
+RR0_B:	DB	000H	; SIO CH. B READ REGISTER 0
+RR1_B:	DB	000H	; SIO CH. B READ REGISTER 1
+
+;========================================================
+;= CHANNEL B TRANSMITTER (PRINTER)                      =
+;========================================================
+
+STLIST:	LD	A,(PRTFLG)	;
+	RET			;
+
+LIST:	LD	A,(PRTFLG)	;
+	OR	A		;
+	JP	Z,LIST		; WHILE printer_busy DO;
+	DI			;
+	LD	A,0 		;
+	LD	(PRTFLG),A	; printer_busy := true;
+	LD	A,05H		;
+	OUT	(SIOBC),A	; (* SELECT WR5 *)
+	LD	A,(WR5B)	;
+	ADD	A,8AH		;
+	OUT	(SIOBC),A	; (*enable RTS,DTR and XMIT*)
+	LD	A,01H		;
+	OUT	(SIOBC),A	; (* SELECT WR1 *)
+	LD	A,07H		;
+	OUT	(SIOBC),A	; (*XMIT,EXT.STATUS,STATUS AFFECTS VECTOR *)
+	LD	A,C		;
+	OUT	(SIOBD),A	; outchar(siobd);
+	EI			;
+	RET			;
+
+	PAGE
+
+;========================================================
+;= CHANNEL A RECEIVER (READER)                          =
+;========================================================
+
+READI:	DI			; PROCEDURE startreader;
+	XOR	A		; BEGIN
+	LD	(RDRFLG),A	;  reader_busy := true;
+	LD	A,05H		;
+	OUT 	(SIOAC),A	; (* SELECT WR5 *)
+	LD	A,(WR5A)	;
+	ADD	A,8AH		;
+	OUT	(SIOAC),A	; (*enab1e RTS,DTR and XMIT*)
+	LD	A,01H		;
+	OUT	(SIOAC),A	; (* SELECT WR1 *)
+	LD	A,1BH		;
+	OUT	(SIOAC),A	; (*enab1e rec,xmit and ext.status*)
+	EI			;
+	RET			; END;
+
+READS:	LD	A,(RDRFLG)	;
+	RET			;
+
+READER: CALL	READS		;
+	OR	A		;
+	JP	Z,READER	; WHILE reader_busy DO;
+	LD	A,(CHARA)	; readchar(sioad);
+	PUSH	AF		;
+	CALL	READI		; startreader;
+	POP	AF		;
+	RET			;
+
+	PAGE
+
+;========================================================
+;= CHANNEL A TRANSMITTER (PUNCH)                        =
+;========================================================
+
+PUNCH:	LD	A,(PTPFLG)	;
+	OR	A		;
+	JP	Z,PUNCH		; WHILE punch_busy DO;
+	DI			;
+	LD	A,0		;
+	LD	(PTPFLG),A	; punch_busy := true;
+	LD	A,05H		;
+	OUT	(SIOAC),A	; (* SELECT WR5 *)
+	LD	A,(WR5A)	;
+	ADD	A,8AH		;
+	OUT	(SIOAC),A	; (*enab1e DTR,RTS and XMIT*)
+	LD	A,01H		;
+	OUT	(SIOAC),A	; (* SELECT WR1 *)
+	LD	A,1BH		;
+	OUT	(SIOAC),A	; (*enab1e rec,xmit and ext.status*)
+	LD	A,C		;
+	OUT	(SIOAD),A	; writechar(sioad);
+	EI			;
+	RET			;
+
+	PAGE
+
+;========================================================
+;= SIO VECTORED INTERRUPT ROUTINES                      =
+;========================================================
+
+TXB:	LD	(SP_SAV),SP	; PROCEDURE TRANSMIT_INT_CH_B;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	LD	A,028H		; BEGIN
+	OUT	(SIOBC),A	;   XMIT_BUF_EMPTY:=FALSE;
+	LD	A,0FFH		;   PRINTER_BUSY:=FALSE;
+	LD	(PRTFLG),A	; END;
+	POP	AF		;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+EXTSTB:	LD	(SP_SAV),SP	; PROCEDURE EXTERNAL_STATUS_INT_CH_B;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	IN	A,(SIOBC)	; BEGIN
+	LD	(RR0_B),A	;   RR0_B:=SIO_CH_B.RR0;
+	LD	A,10H		;   EXTERNAL_STATUS_INT:=FALSE;
+	OUT	(SIOBC),A	; END;
+	POP	AF		;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+RCB:	LD	(SP_SAV),SP	; PROCEDURE RECEIVE_INT_CH_B;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	IN	A,(SIOAD)	; BEGIN
+	LD	(CHARB),A	;   CHARB:=READCHAR(SIOBD);
+	POP	AF		; END;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+SPECB:	LD	(SP_SAV),SP	; PROCEDURE SPECIAL_RECEIVE_INT_CH_B;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	LD	A,1		; BEGIN
+	OUT	(SIOBC),A	;   RR1_B:=SIO_CH_B.RR1;
+	IN	A,(SIOBC)	;   ERROR_RESET;
+	LD	(RR1_B),A	; END;
+	LD	A,30H		;
+	OUT	(SIOBC),A	;
+	POP	AF		;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+	PAGE
+
+TXA:	LD	(SP_SAV),SP	; PROCEDURE TRANSMIT_INT_CH_A;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	LD	A,028H		; BEGIN
+	OUT	(SIOAC),A	;   XMIT_BUF_EMPTY:=FALSE;
+	LD	A,0FFH		;   PUNCH_BUSY:=FALSE;
+	LD	(PTPFLG),A	; END;
+	POP	AF		;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+EXTSTA:	LD	(SP_SAV),SP	; PROCEDURE EXTERNAL_STATUS_INT_CH_A;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	IN	A,(SIOAC)	; BEGIN
+	LD	(RR0_A),A	;   RR0_A:=SIO_CH_A.RR0;
+	LD	A,10H		;   EXTERNAL_STATUS_INT:=FALSE;
+	OUT	(SIOAC),A	; END;
+	POP	AF		;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+RCA:	LD	(SP_SAV),SP	; PROCEDURE RECEIVE_INT_CH_A;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	IN	A,(SIOAD)	; BEGIN
+	LD	(CHARA),A	;   CHARA:=READCHAR(SIOAD);
+	LD	A,0FFH		;   READER_BUSY:=FALSE;
+	LD	(RDRFLG),A	; END;
+	POP	AF		;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+SPECA:	LD	(SP_SAV),SP	; PROCEDURE SPECIAL_RECEIVE_INT_CH_A;
+	LD	SP,ISTACK	;
+	PUSH	AF		;
+	LD	A,1		; BEGIN
+	OUT	(SIOAC),A	;   RR1_A:=SIO_CH_A.RR1;
+	IN	A,(SIOAC)	;   ERROR_RESET;
+	LD	(RR1_A),A	;   CHAR_RECEIVED:= 0;
+	LD	A,30H		;   FLAG:= TRUE;
+	OUT	(SIOAC),A	; END;
+	LD	A,0		;
+	LD	(CHARA),A	;
+	LD	A,0FFH		;
+	LD	(RDRFLG),A	;
+	POP	AF		;
+	LD	SP,(SP_SAV)	;
+	EI			;
+	RETI			;
+
+	PAGE
+

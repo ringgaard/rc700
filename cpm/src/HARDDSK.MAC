@@ -1,0 +1,322 @@
+	SUBTTL WINCHESTER DISK DRIVER
+;=============================================================================
+;=      HARD DISK PHYSICAL WRITE (MEMORY => DISK)                            =
+;=============================================================================
+;
+HWRHST:	CALL	CHKPOS		; CHECK HEAD POSISTION
+	CALL	NC,STSKFL	;   IF: HEAD POSISTION NOT OK
+	CALL	WDCRDY		; THEN: SET UP TASK FILE TO WD1000
+	RET	NC		; ELSE:
+	LD	HL,(FORM)	;   IF: WD1000 NOT READY
+	LD	C,(HL)		; THEN: END
+	INC	HL		; ELSE: GET CURRENT FORMAT TABLE ADDRESS
+	LD	B,(HL)		;       GET DMA XFER. COUNT
+	CALL	DMA0RD		; SET UP DMA READ (MEM => DISK)
+	LD	A,WRTCMD	;
+	OUT	(HCMDRG),A	; ELSE: ISSUE WRITE COMMAND
+	CALL	WAITHD		;       AWAIT COMPLETION
+	RET			; END
+
+;=============================================================================
+;=      HARD DISK PHYSICAL READ (DISK => MEMORY)                             =
+;=============================================================================
+;
+HRDHST:	CALL	CHKPOS		; CHECK HEAD POSISTION
+	CALL	NC,STSKFL	;   IF: HEAD POSISTION NOT OK
+	CALL	WDCRDY		; THEN: SET UP TASK FILE TO WD1000
+	RET	NC		; ELSE:
+	LD	HL,(FORM)	;   IF: WD1000 NOT READY
+	LD	C,(HL)		; THEN: END
+	INC	HL		; ELSE: GET CURRENT FORMAT TABLE ADDRESS
+	LD	B,(HL)		;       GET DMA XFER. COUNT
+	CALL	DMA0WR		;       SET UP DMA READ (DISK => MEM)
+	LD	A,RDCMD		;
+	OUT	(HCMDRG),A	; ELSE: ISSUE READ COMMAND
+	CALL	WAITHD		;       AWAIT COMPLETION
+	RET			; END
+
+	PAGE
+
+;=============================================================================
+;=      CHECK DISK HEAD POSISTION                                            =
+;=============================================================================
+;
+CHKPOS:	LD	HL,HSTBUF	; INIT. XFER ADR. WITH HOST BUFFER
+	LD	(DSKAD),HL	;
+	LD	A,(HSTDSK)	;
+	LD	HL,LSTDSK	;   IF: HOST_DISK:=LAST_DISK
+	CP	(HL)		; THEN:
+	JP	NZ,CHKP10	;
+	LD	A,(HSTTRK)	;
+	LD	HL,LSTTRK	;        IF: HOST_TRACK:=LAST_TRACK
+	CP	(HL)		;      THEN: RESET CARRY FLAG
+	JP	NZ,CHKP10	;            END
+	LD	A,(HSTTRK+1)	;      ELSE:
+	INC	HL		;
+	CP	(HL)		; ELSE:
+	JP	NZ,CHKP10	;
+	AND	A		;
+	RET			;
+CHKP10:	LD	A,(HSTDSK)	;
+	LD	(LSTDSK),A	;       LAST_DISK:=HOST_DISK
+	LD	HL,(HSTTRK)	;
+	LD	(LSTTRK),HL	;       LAST_TRACK:=HOST_TRACK
+	CALL	STSKFL		;       SET UP TASK FILE
+	CALL	HDSEEK		;       POSITION HEADS
+	JP 	NC,CHKP30	;   IF: SEEK COMMAND ISSUED
+	CALL	WAITHD		; THEN: AWAIT COMPLETION
+CHKP20:	IN	A,(HDSTRG)	;       READ STATUS REGISTER
+	AND	10H		;       AWAIT SEEK COMPLETION
+	JP	Z,CHKP20	;
+CHKP30:	SCF			; ELSE: SET CARRY FLAG
+	RET			; END
+
+	PAGE
+
+;=============================================================================
+;=      SET UP TASK FILE TO WD1000                                           =
+;=============================================================================
+;
+STSKFL:	LD	HL,(FORM)	; SET CURRENT FORMAT TABLE ADR.
+	LD	DE,-1		;
+	EX	DE,HL		;
+	ADD	HL,DE		; GET ADR. OF END_OF_PAGE
+	XOR	A		; INIT. HEAD NO.
+	LD	C,(HL)		; GET END_OF_PAGE
+	LD	B,00H		;
+	LD	HL,(HSTSEC)	; GET SECTOR NO.
+STSK10:	AND	A		;
+	SBC	HL,BC		; A:=HEAD_NO:=INT(HOST_SECTOR/END_OF_PAGE)
+	JP	C,STSK20	;
+	INC	A		; HL:=SECTOR:=HOST_SECTOR-HEAD_NO*END_OF_PAGE
+	JP	STSK10		;
+STSK20:	ADD	HL,BC		;
+	PUSH	AF		;
+	LD	A,L		;
+	OUT	(HSECNO),A	;
+	LD	A,(LSTDSK)	;
+	LD	C,0		;
+	LD	HL,UNK1		;
+	SUB	(HL)		;
+	LD	HL,UNK2		;
+	CP	(HL)		;
+	JP	C,STSK30	;
+	SUB	(HL)		;
+	INC	C		;
+	LD	HL,UNK3		;
+	CP	(HL)		;
+	JP	C,STSK30	;
+	SUB	(HL)		;
+	INC	C		;
+	LD	HL,UNK4		;
+	CP	(HL)		;
+	JP	C,STSK30	;
+	INC	C		;
+STSK30:	SLA	C		;
+	SLA	C		;
+	SLA	C		;
+	POP	AF		;
+	OR	C		;
+STSK40:	LD	HL,5		;
+	ADD	HL,DE		; GET ADR. OF SECTOR SIZE IN FORMAT TABLE
+	OR	(HL)		; LOGICAL OR SECTOR SIZE ON
+	OUT	(HSZDHD),A	; INIT. SIZE, DISK AND HEAD NO. IN TASK FILE
+	LD	HL,(LSTTRK)	; SET TRACK NO.
+	LD	A,L		;
+	OUT	(HCYLLO),A	; INIT. CYLINDER LOW IN TASK FILE
+	LD	A,H		;
+	AND	3		; MASK OF 5 MSB BITS
+	OUT	(HCYLHI),A	; INIT. CYLINDER HIGH IN TASK FILE
+	LD	HL,6		;
+	ADD	HL,DE		; GET WRITE PRECOMP ADR. IN FORMAT TABLE
+	LD	A,(HL)		;
+	OUT	(HWPCMP),A	; INIT. WRITE PRECOMR IN TASK FILE
+	RET			; END
+
+	PAGE
+
+;=============================================================================
+;=	HARD DISK SEEK ROUTINE                                               =
+;=============================================================================
+;
+HDSEEK:	LD	HL,(FORM)	; 	GET CURRENT FORMAT TABLE ADR.
+	LD	DE,5		;
+	ADD	HL,DE		; 	GET ADR. OF DISK STEP RATE
+	LD	A,SEEKCM	; 	LOGICAL OR SEEK CMD. WITH STEP RATE
+	OR	(HL)		;
+	CALL	WDCRDY		;   IF: WD CONTROLLER READY
+	RET	NC		; THEN: END
+	OUT	(HCMDRG),A	; ELSE: ISSUE SEEK COMMAND
+	SCF			; 	SET CARRY FLAG
+	RET			; END.
+
+;=============================================================================
+;=	AWAIT COMPLETION OF HARD DISK OPERATION                              =
+;=============================================================================
+;
+WAITHD:	LD	A,(HD_FLG)	; AWAIT HARD DISK INT.
+	OR	A		;
+	JP	Z,WAITHD	;
+	XOR	A		; RESET FLAG
+	LD	(HD_FLG),A	;
+	RET			; END
+
+	PAGE
+
+;=============================================================================
+;=	CHECK WD1000 FOR READY TO ACCEPT NEW COMMAND                         =
+;=============================================================================
+;
+WDCRDY:	PUSH	AF		; SAVE REGISTERS
+	IN	A,(HDSTRG)	; READ WD STATUS REG.
+	AND	50H		; MASK OF READY,SEEK COMP. AND WRITE FAULT
+	CP	50H		; TEST FOR READY AND SEEK COMP. IS TRUE
+	JP	Z,WDCR10	; AND WRITE FAULT IS FALSE
+	LD	A,0BBH		;   IF: NOT O.K.
+	LD	(ERFLAG),A	; THEN: SET ERROR FLAG
+	POP	AF		;	RESTORE REGISTERS
+	AND	A		;	RESET CARRY FLAG TO INDICATE NOT READY
+	RET			;	END
+WDCR10:	POP	AF		; ELSE: RESTORE REGISTERS
+	SCF			;	SET CARRY FLAG TO INDICATE READY
+	RET			; END
+
+	PAGE
+
+;=============================================================================
+;=	INITIALIZE DMA CHANNEL 0 TO WRITE (DISK => MEMORY)                   =
+;=============================================================================
+;
+DMA0WR:	LD	A,04H		;
+	DI			;
+	OUT	(DMAMAS),A	; SET CHANNEL 0 MASK
+	LD	A,44H		; MODE:=WRITE
+	JP	DMA010		; GOTO DMA0 LABEL 10
+
+;=============================================================================
+;=	INITIALIZE DMA CHANNEL 0 TO READ (MEMORY => DISK)                    =
+;=============================================================================
+;
+DMA0RD:	LD	A,04H		;
+	DI			;
+	OUT	(DMAMAS),A	; SET CHANNEL 0 MASK
+	LD	A,48H		; MODE:=READ
+DMA010:	OUT	(DMAMOD),A	; SELECT DMA MODE
+	OUT	(DMACBC),A	; CLEAR BYTE POINTER
+	LD	A,(DSKAD)	;
+	OUT	(DMAAD0),A	; SET LOW ADDRESS  
+	LD	A,(DSKAD+1)	;
+	OUT	(DMAAD0),A	; SET HIGH ADDRESS
+	LD	A,C		;
+	OUT	(DMACN0),A	; SET LOW COUNT
+	LD	A,B		;
+	OUT	(DMACN0),A	; SET HIGH COUNT
+	LD	A,00H		;
+	OUT	(DMAMAS),A	; CLEAR CHANNEL 0 MASK
+	EI			;
+	RET			; END
+
+	PAGE
+
+;=============================================================================
+;= 	WD1000 HARD DISK RESTORE ROUTINE                                     =
+;=	DESCRIPTION: THE RESTORE ROUTINE PERFORMS A RESTORE OF THE R/W HEADS =
+;=	             (POSITIONS TO TRACK 0)                                  =
+;=	ENTRY: A:= SIZE/DRIVE/HEAD                                           =
+;=	       B:= STEPPING RATE                                             =
+;=                                                                           =
+;= 	THE ROUTINE IS USED IN THE COLD START.                               =
+;=============================================================================
+
+HRDRST:	OUT	(HSZDHD),A	; OUTPUT SIZE/DRIVE/HEAD
+	XOR	A		; A=0
+	OUT	(HWPCMP),A	;
+	OUT	(HSECCT),A	;
+	OUT	(HSECNO),A	;
+	OUT	(HCYLLO),A	;
+	OUT	(HCYLHI),A	;
+	LD	A,10H		; RESTORE COMMAND
+	OR	B		; ADD STEPPING RATE
+	OUT	(HCMDRG),A	; OUTPUT RESTORE COMMAND
+	RET			; RETURN
+
+	PAGE
+
+;=============================================================================
+;=	WD1000 HARD DISK FORMAT ROUTINE.                                     =
+;=                                                                           =
+;=	DESCRIPTION: THE FORMAT ROUTINE FORMATS ONE TRACK, SPECIFIED BY      =
+;=	             THE FOLLOWING PARAMETERS.                               =
+;=                                                                           =
+;=	ENTRY: A:= SIZE/DRIVE/HEAD                                           =
+;=	       B:= WRITE PRECOMPRESED                                        =
+;=	       C:= SECTOR COUNT                                              =
+;=	       D:= CYLINDER HIGH                                             =
+;=	       E:= CYLINDER LOW                                              =
+;=	       DMAADR:= POINTER TO FORMAT INFORMATIONS                       =
+;=                                                                           =
+;= 	EXIT:  A:= 0 => FORMAT OK. A:= 1 => FORMAT ERROR                     =
+;=                                                                           =
+;=============================================================================
+;
+HRDFMT:	OUT	(HSZDHD),A	; INIT. SIZE/DRIVE/HEAD
+	LD	A,B		;
+	OUT	(HWPCMP),A	; INIT. WRITE PRECOMRRESED
+	LD	A,C		;
+	OUT	(HSECCT),A	; INIT. SECTOR COUNT
+	LD	A,E		;
+	OUT	(HCYLLO),A	; INIT. CYLINDER LOW
+	LD	A,D		;
+	OUT	(HCYLHI),A	; INIT. CYLINDER HIGH
+	LD	HL,(DMAADR)	;
+	LD	(DSKAD),HL	; INIT. DMA XFER ADR.
+	CALL	WDCRDY		;   IF: WD1000 READY
+	JP	NC,HRDF10	; THEN: SET UP DMA0 TO READ (MEM => DISK)
+	LD	BC,511		; 	INIT. DMA XFER. COUNT
+	CALL	DMA0RD		;
+	LD	A,FMTCMD	;
+	OUT	(HCMDRG),A	;	ISSUE FORMAT COMMAND
+	CALL	WAITHD		;	AWAIT COMPLETION
+	LD	A,(ERFLAG)	;
+	AND	A		;	  IF: FORMAT OK.
+	RET	Z		;	THEN: END
+HRDF10:	XOR	A		;	ELSE:
+	LD	(ERFLAG),A	; ELSE: RESET ERROR FLAG
+	LD	A,1		; 	SIGNAL ERROR TO CALLER
+	RET
+
+	PAGE
+
+;=============================================================================
+; 	WD1000 HARD DISK CONTROLLER INTERRUPT ROUTINE                        =
+;=============================================================================
+;
+HDITR:	LD	(SP_SAV),SP	; SAVE OLD STACK POINTER
+	LD	SP,ISTACK	; INIT. NEW STACK POINTER
+	PUSH	AF		;
+	PUSH	BC		; SAVE REGISTERS
+	PUSH	DE		;
+	PUSH	HL		;
+	LD	A,0FFH		;
+	LD	(HD_FLG),A	; HD_BUSY_FLAG:=FALSE
+	IN	A,(HDSTRG)	; READ STATUS
+	LD	(MHDTSR),A	; UPDATE MIRROW
+	AND	01H		;
+	JP	Z,HDIT10	;   IF: ERROR
+	IN	A,(HDERRG)	; THEN: READ ERROR REG.
+	LD	(MHDERR),A	;	UPDATE MIRROW
+	LD	HL,(HERRCT)	;
+	INC	HL		; 	ERROR_COUNT:=ERROR_COUNT+1
+	LD	(HERRCT),HL	;
+	LD	A,0BBH		;
+	LD	(ERFLAG),A	; 	SET ERROR FLAG
+HDIT10:	POP	HL		; ELSE:
+	POP	DE		;
+	POP	BC		;	RESTORE REGISTERS
+	POP	AF		;
+	LD	SP,(SP_SAV)	; 	RESTORE STACK POINTER
+	EI			;
+	RETI			; END
+
+	PAGE
+

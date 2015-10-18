@@ -1,0 +1,30 @@
+DUMITR:	EI			; DUMMY INTERRUPT ROUTINE
+	RETI			;
+
+	DS	256-($ AND 255)	;
+;================================================
+;= INTERRUPT TABLE                              =
+;================================================
+ITRTAB:	DW	DUMITR		; CTC 1 : CH. 0 := SIO CH. A BAUDRATE
+	DW 	DUMITR		;         CH. 1 := SIO CH. B BAUDRATE
+	DW	DSPITR		;         CH. 2 := DISPLAY
+	DW	FLITR		;         CH. 3 := FLOPPY
+	DW	HDITR 		; CTC 2 : CH. 0 := WD1000
+	DW	DUMITR		;         CH. 1 := NOT USED
+	DW	DUMITR		;         CH. 2 := NOT USED
+	DW	DUMITR		;         CH. 3 := NOT USED
+	DW	TXB		; SIO : CH. B TRANSMITTER
+	DW	EXTSTB		;       CH. B EXTERNAL STATUS
+	DW	RCB		;       CH. B RECEIVER
+	DW	SPECB		;       CH. B SPECIAL RECEIVE
+	DW	TXA		;       CH. A TRANSMITTER
+	DW	EXTSTA		;       CH. A EXTERNAL STATUS
+	DW	RCA		;       CH. A RECEIVER
+	DW	SPECA		;       CH. A SPECIAL RECEIVE
+	DW	KEYIT		; PIO : CH. A := KEYBOARD
+	DW	PARIN		;       CH. B := PARALLEL OUT
+
+CITAB:	DW	ITRTAB		;
+
+	PAGE
+

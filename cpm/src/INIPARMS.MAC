@@ -1,0 +1,145 @@
+	SUBTTL	HARDWARE INITIALIZATION PARAMETERS
+
+;========================================================
+;= HARDWARE INITIALIZATION SECTION                      =
+;========================================================
+;= ROM BOOTSTRAP LOADER INFORMATION                     =
+;========================================================
+
+	ORG	0		;
+	.PHASE	START		;
+	DW	CBOOT		; ENTRY POINT
+	DS	6		;
+	DB	' RC702'	;
+
+	DS 	128-($ AND 127)	;
+
+	PAGE
+
+;==============================================================================
+;= START OF HARDWARE CONFIGURATION PARAMETERS USED BY CONFI                   =
+;==============================================================================
+;= Z80 CTC CONTROLLER                                   =
+;========================================================
+MODE0:	DB	047H	; TIMER MODE
+COUNT0:	DB	020H	; COUNT TO OBTAIN 1200 BAUD (SIO CHANNEL A)
+MODE1:	DB	047H	; TIMER MODE
+COUNT1:	DB	020H	; COUNT TO OBTAIN 1200 BAUD (SIO CHANNEL B)
+MODE2:	DB	0D7H	; COUNTER MODE
+COUNT2:	DB	001H	; INTERRUPT AFTER 1 COUNT (DISPLAY)
+MODE3:	DB	0D7H	; COUNTER MODE
+COUNT3:	DB	001H	; INTERRUPT AFTER 1 COUNT (FLOPPY DISK)
+
+;========================================================
+;= Z80 SIO CONTROLLER                                   =
+;========================================================
+PSIOA: 	DB 018H		; CHANNEL RESET
+	DB 004H		; SELECT WR4
+	DB 047H		; 1 STOP BIT,EVEN PARITY,16*CLOCK
+	DB 003H		; SELECT WR3
+	DB 061H		; REC,AUTO ENABLE. 7 BITS/CHARACTER
+	DB 005H		; SELECT WR5
+	DB 020H		; RTS,DTR,XMIT DISABLE. 7 BITS/CHARACTER
+	DB 001H		; SELECT WR1
+	DB 01BH		; ENABLE REC,XMIT AND EXT.STATUS.
+
+PSIOB:	DB 018H		; CHANNEL RESET
+	DB 002H		; SELECT WR2
+	DB 010H		; INTERRUPT VECTOR
+	DB 004H		; SELECT WR4
+	DB 047H		; 1 STOP BIT,EVEN PARITY,16*CLOCK  
+	DB 003H		; SELECT WR3
+	DB 060H		; AUTO ENABLE,REC 7 BITS/CHAR,REC DISABLE.
+	DB 005H		; SELECT WR5
+	DB 020H		; RTS,XMIT,DTR DISABLE. 7 BITS/CHARACTER
+	DB 001H		; SELECT WR1
+	DB 01FH		; ENABLE REC,XMIT AND EXT.STATUS. STATUS AFFECTS VECTOR
+
+	PAGE
+
+;========================================================
+;= AM9517 DMA CONTROLLER                                =
+;========================================================
+DMODE0:	DB	048H	; DMA CHANNEL0 MODE (WD1000)
+DMODE1:	DB	049H	; DMA CHANNEL1 MODE (FLOPPY DISK)
+DMODE2:	DB	04AH	; DMA CHANNEL2 MODE (DISPLAY)
+DMODE3:	DB	04BH	; DMA CHANNEL3 MODE (DISPLAY)
+
+;========================================================
+;= INTEL 8275 DISPLAY CONTROLLER                        =
+;========================================================
+PAR1:	DB	04FH	; NORMAL ROWS,80 CHARACTERS PR. ROW
+PAR2:	DB	098H	; ROWCOUNTS/VRTC, 25 ROWS PR. FRAME
+PAR3:	DB	07AH	; UNDERLINE IN POSITION 8, 11 POSITIONS PR. CHARACTER
+			; Note that underline pos. must be less than 9
+PAR4:	DB	04DH	; CURSOR FORMAT BLOCK,BLINK AND REVERSE VIDEO
+
+;========================================================
+;= UPD765 FLOPPY DISK CONTROLLER                        =
+;========================================================
+FDPROG:	DB	3	; PROGRAM LENGTH
+	DB	003H	; SPECIFY COMMAND  
+	DB 	0DFH	; STEP RATE TIME=3MS, HEAD UNLOAD TIME=240MS (MAXI)
+	DB	028H	; HEAD LOAD TIME=4OMS, DMAMODE
+
+;========================================================
+;= DEFAULT PARAMETERS USED BY CONFI PROGRAM             =
+;========================================================
+	DB	000H	; CURSOR NUMBER
+	DB	000H	; CONV TAB NUMBER ( DANISH )
+	DB	006H	; BAUD RATE NUMBER A
+	DB	006H	; BAUD RATE NUMBER B
+XYFLG:	DB	000H	; ADDRESS MODE 0=XY, 1=YX
+STPTIM:	DW	250	; MINI FLOPPY MOTOR STOP TIMER (5 SEC)
+;==============================================================================
+;=(END OF HARDWARE CONFIGURATION PARAMETERS USED BY CONFI)                    =
+;==============================================================================
+
+	PAGE
+
+;==============================================================================
+;= DISK CONFIGURATION PARAMETERS                                              =
+;==============================================================================
+INFD0:	DB	08	; 08 : MAXI FLOPPY DISK 1,1 MB UNIT
+INFD1:	DB	08	; 16 : MINI FLOPPY DISK 0,8 MB UNIT
+INFD2:	DB	32	; 32 : HARD DISK 1 MB (FLP) UNIT
+INFD3:	DB	255	; 40 : HARD DISK 0,3 MB (FLP) UNIT
+INFD4:	DB	255	; 48 : HARD DISK 2 MB UNIT
+INFD5:	DB	255	; 56 : HARD DISK 4 MB UNIT
+INFD6:	DB	255	; 64 : HARD DISK 8 MB UNIT
+INFD7:	DB	255	; 255: NOT USED
+INFD8:	DB	255	;
+INFD9:	DB	255	;
+INFD10:	DB	255	;
+INFD11:	DB	255	;
+INFD12:	DB	255	;
+INFD13:	DB	255	;
+INFD14:	DB	255	;
+INFD15:	DB	255	;
+INFDXX:	DB	255	; MUST ALWAYS BE 255, USED TO TERMINATE INIT. COPY
+
+NDTAB:	DB	2	;
+NDT1:	DB	2,0,0	;
+
+	PAGE
+
+;==============================================================================
+;= Z80 CTC 2 CONTROLLER PARAMETERS                                            =
+;==============================================================================
+MODE4:	DB	0D7H	; COUNTER MODE
+COUNT4:	DB	001H	; INTERRUPT AFTER 1 COUNT (WD1000)
+MODE5:	DB	003H	; CHANNEL RESET
+
+;==============================================================================
+;= SYSTEM DISK DRIVE		MODIFIED BY HDINST                            =
+;==============================================================================
+
+ibootd:	db	0	; boot disk, 0 = floppy (A), <> 0 = hard disk (C)
+			; 	Init loged drive nr. (HD)
+
+	DS	128-($ AND 127)	; ALIGN TO 128 BYTE
+
+;==============================================================================
+;= END OF H/W CONFIGURATION PARAMETERS                                        =
+;==============================================================================
+

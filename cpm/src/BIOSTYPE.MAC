@@ -1,0 +1,14 @@
+;==============================================================================
+;= THE EQU LINE DETERMINES WHETHER A MINI VERSION OR A MAXI VERSION OF BIOS   =
+;= WILL BE CREATED:                                                           =
+;=                 IF MINI IS DEFINED                                         =
+;=                   (REMOVE THE ';') DISK TABLES ARE GENERATED FOR A MINI    =
+;=                    DISKETTE SYSTEM                                         =
+;=                 ELSE                                                       =
+;=                    DISK TABLES FOR A MAXI SYSTEM WILL BE GENERATED         =
+;==============================================================================
+
+MINI	EQU	0		; MINI/MAXI SWITCH
+
+	PAGE
+

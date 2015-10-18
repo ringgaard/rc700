@@ -1,0 +1,424 @@
+TITLE	OUTPUT CONVERSION TABLE
+SUBTTL	DANISH PUBLIC SECTOR
+	PAGE
+
+;              ASCII          OUTPUT            KOMMENTAR
+	DB	  0;		  0:		not used
+	DB	  1;		  1:		A-CTRL
+	DB	  2;		  2:
+	DB	  3;		  3:		C-CTRL
+	DB	  4;		  4:		D-CTRL
+	DB	  5;		  5:		 <--
+	DB	  6;		  6:		F-CTRL
+	DB	  7;		  7:		G-CTRL
+	DB	  8;		  8:		H-CTRL
+	DB	  9;		  9:		-->
+	DB	 10;		 10:		PIL NEDAD
+	DB	 11;		 11:		K-CTRL
+	DB	 12;		 12:		CLEAR
+	DB	 13;		 13:		VENSTRE KN{KPIL, MCTRL,CR
+	DB	 14;		 14: 		N-CTRL
+	DB	 15;		 15:
+	DB	 16;		 16:
+	DB	 17;		 17:
+	DB	 18;		 18:		B-CTRL
+	DB	 19;		 19:		S-CTRL
+	DB	 20;		 20:
+	DB	 21;		 21:
+	DB	 22;		 22:
+	DB	 23;		 23:
+	DB	 24;		 24:		X-CTRL
+	DB	 25;		 25:
+	DB	 26;		 26:		PIL OPAD, Z-CTRL
+	DB	 27;		 27:		ESCAPE, {-CTRL
+	DB	 28;		 28:		|-CTRL
+	DB	 29;		 29:
+	DB	 30;		 30:		@-CTRL
+	DB	 31;		 31:
+	DB	 32;		 32:		SPACE
+	DB	 33;		 33:
+	DB	 34;		 34:		"
+	DB	 35;		 35:		# (PARAGRAF SIGN)
+	DB	 36;		 36:		$
+
+	PAGE
+
+	DB	 37;		 37:            %
+	DB	 38;		 38:		&
+	DB	 39;		 39:		'
+	DB	 40;		 40:		(
+	DB	 41;		 41:		)
+	DB	 42;		 42:		*
+	DB	 43;		 43:		+
+	DB	 44;		 44:		,
+	DB	 45;		 45:		- (MINUS)
+	DB	 46;		 46:		.
+	DB	 47;		 47:		/
+	DB	 48;		 48:		0 (NUL)
+	DB	 49;		 49:		1  
+	DB	 50;		 50:		2
+	DB	 51;		 51:		3
+	DB	 52;		 52:		4
+	DB	 53;		 53:		5
+	DB	 54;		 54:		6
+	DB	 55;		 55:		7
+	DB	 56;		 56:		8
+	DB	 57;		 57:		9
+	DB	 58;		 58:		:
+	DB	 59;		 59:		SEMIKOLON
+	DB	 60;		 60:		<
+	DB	 61;		 61:		=
+	DB	 62;		 62:		>
+	DB	 63;		 63:		?
+	DB	 64;		 64:		@
+	DB	 65;		 65:		A
+	DB	 66;		 66:		B
+	DB	 67;		 67:		C
+	DB	 68;		 68:		D
+	DB	 69;		 69:		E
+	DB	 70;		 70:		F
+	DB	 71;		 71:		G
+	DB	 72;		 72:		H
+	DB	 73;		 73:		I
+	DB	 74;		 74:		J
+
+	PAGE
+
+	DB	 75;		 75:		K
+	DB	 76;		 76:		L  
+	DB	 77;		 77:		M
+	DB	 78;		 78:		N
+	DB	 79;		 79:		O
+	DB	 80;		 80:		P
+	DB	 81;		 81:		Q
+	DB	 82;		 82:		R
+	DB	 83;		 83:		S
+	DB	 84;		 84:		T
+	DB	 85;		 85:		U
+	DB	 86;		 86:		V
+	DB	 87;		 87:		W
+	DB	 88;		 88:		X
+	DB	 89;		 89:		Y
+	DB	 90;		 90:		Z
+	DB	 91;		 91:		[
+	DB	 92;		 92:		\
+	DB	 93;		 93:		]
+	DB	 94;		 94:		TYSK Y
+	DB	 95;		 95:		UNDERSTREGNING
+	DB	 96;		 96:		PIL OPAD
+	DB	 97;		 97:		a
+	DB	 98;		 98:		b
+	DB	 99;		 99:		c
+	DB	100;		100:		d
+	DB	101;		101:		e
+	DB	102;		102:		f
+	DB	103;		103:		g
+	DB	104;		104:		h
+	DB	105;		105:		i
+	DB	106;		106:		j
+	DB	107;		107:		k
+	DB	108;		108:		l
+	DB	109;		109:		m
+	DB	110;		110:		n
+	DB	111;		111:		o
+	DB	112;		112:		p
+
+	PAGE
+
+	DB	113;		113:		q
+	DB	114;		114:		r
+	DB	115;		115:		s
+	DB	116;		116:		t
+	DB	117;		117:		u
+	DB	118;		118:		v
+	DB	119;		119:		w
+	DB	120;		120:		x
+	DB	121;		121:		y
+	DB	122;		122:		z
+	DB	123;		123:		{
+	DB	124;		124:		|
+	DB	125;		125:		}
+	DB	126;		126:		LILLE TYSK y
+	DB	127;		127:		RUBOUT
+
+	TITLE INPUT CONVERSION TABLE
+	SUBTTL DANISH
+
+	PAGE
+
+;             ASCII     INPUT		KOMMENTAR
+	DB	  0;	  0 :
+	DB	  1;	  1 :          A-CTRL
+	DB	  2;	  2 :          B-CTRL
+	DB	  3;	  3 :          C-CTRL
+	DB	  4;	  4 :          D-CTRL
+	DB	  5;	  5 :          E-CTRL
+	DB	  6;	  6 :          F-CTRL
+	DB	  7;	  7 :          G-CTRL
+	DB	  8;	  8 :          H-CTRL
+	DB	  9;	  9 :          I-CTRL
+	DB	 10;	 10 :          J-CTRL
+	DB	 11;	 11 :          K-CTRL
+	DB	 12;	 12 :          L-CTRL
+	DB	 13;	 13 :          M-CTRL, CR
+	DB	 14;	 14 :          N-CTRL
+	DB	 15;	 15 :          O-CTRL
+	DB	 16;	 16 :          P-CTRL
+	DB	 17;	 17 :          Q-CTRL
+	DB	 18;	 18 :          R-CTRL
+	DB	 19;	 19 :          S-CTRL
+	DB	 20;	 20 :          T-CTRL
+	DB	 21;	 21 :          U-CTRL
+	DB	 22;	 22 :          V-CTRL
+	DB	 23;	 23 :          W-CTRL
+	DB	 24;	 24 :          X-CTRL
+	DB	 25;	 25 :          Y-CTRL
+	DB	 26;	 26 :          Z-CTRL
+	DB	 27;	 27 :          {-CTRL, ESC
+	DB	 28;	 28 :          |-CTRL
+	DB	 29;	 29 :          }-CTRL
+	DB	 30;	 30 :          PILOP-CTRL, ERA. EOLN
+	DB	 31;	 31 :          RUBOUT-CTRL, ERA. EOS
+	DB	 32;	 32 :          SPACE, BAR
+	DB	 33;	 33 :
+	DB	 34;	 34 :          "
+	DB	 35;	 35 :          #
+	DB	 36;	 36 :          $ (DOLLAR)
+
+	PAGE
+
+	DB	 37;	 37 :          %
+	DB	 38;	 38 :          &
+	DB	 39;	 39 :          '
+	DB	 40;	 40 :          (
+	DB	 41;	 41 :          )
+	DB	 42;	 42 :          *
+	DB	 43;	 43 :          +
+	DB	 44;	 44 :          ,
+	DB	 45;	 45 :          -
+	DB	 46;	 46 :          .
+	DB	 47;	 47 :          /
+	DB	 48;	 48 :          0 (NUL)
+	DB	 49;	 48 :          1
+	DB	 50;	 50 :          2
+	DB	 51;	 51 :          3
+	DB	 52;	 52 :          4
+	DB	 53;	 53 :          5
+	DB	 54;	 54 :          6
+	DB	 55;	 55 :          7
+	DB	 56;	 56 :          8
+	DB	 57;	 57 :          9
+	DB	 58;	 58 :          :
+	DB	 59;	 59 :          SEMIKOLON
+	DB	 60;	 60 :          <
+	DB	 61;	 61 :          =
+	DB	 62;	 62 :          >
+	DB	 63;	 63 :          ?
+	DB	 64;	 64 :          @
+	DB	 65;	 65 :          A
+	DB	 66;	 66 :          B
+	DB	 67;	 67 :          C
+	DB	 68;	 68 :          D
+	DB	 69;	 69 :          E
+	DB	 70;	 70 :          F
+	DB	 71;	 71 :          G
+	DB	 72;	 72 :          H
+	DB	 73;	 73 :          I
+	DB	 74;	 74 :          J
+
+	PAGE
+
+	DB	 75;	 75 :          K
+	DB	 76;	 76 :          L
+	DB	 77;	 77 :          M
+	DB	 78;	 78 :          N
+	DB	 79;	 79 :          O
+	DB	 80;	 80 :          P
+	DB	 81;	 81 :          Q
+	DB	 82;	 82 :          R
+	DB	 83;	 83 :          S
+	DB	 84;	 84 :          T
+	DB	 85;	 85 :          U
+	DB	 86;	 86 :          V
+	DB	 87;	 87 :          W
+	DB	 88;	 88 :          X
+	DB	 89;	 89 :          Y
+	DB	 90;	 90 :          Z
+	DB	 91;	 91 :          [
+	DB	 92;	 92 :          \
+	DB	 93;	 93 :          ]
+	DB	 94;	 94 :          PIL OP
+	DB	 95;	 95 :          UNDERSTREGNING
+	DB	 96;	 96 :          STORT TYSK Y
+	DB	 97;	 97 :          a
+	DB	 98;	 98 :          b
+	DB	 99;	 99 :          c
+	DB	100;	100 :          d
+	DB	101;	101 :          e
+	DB	102;	102 :          f
+	DB	103;	103 :          g
+	DB	104;	104 :          h
+	DB	105;	105 :          i
+	DB	106;	106 :          j
+	DB	107;	107 :          k
+	DB	108;	108 :          l
+	DB	109;	109 :          m
+	DB	110;	110 :          n
+	DB	111;	111 :          o
+	DB	112;	112 :          p
+
+	PAGE
+
+	DB	113;	113 :          q
+	DB	114;	114 :          r
+	DB	115;	115 :          s
+	DB	116;	116 :          t
+	DB	117;	117 :          u
+	DB	118;	118 :          v
+	DB	119;	119 :          w
+	DB	120;	120 :          x
+	DB	121;	121 :          y
+	DB	122;	122 :          z
+	DB	123;	123 :          {
+	DB	124;	124 :          |
+	DB	125;	125 :          }
+	DB	126;	126 :          ~
+	DB	127;	127 :          RUBOUT
+	DB	128;	128 :
+	DB	  1;	129 :          HOME
+	DB	130;	130 :
+	DB	  3;	131 :          PA1
+	DB	  4;	132 :          PA2
+	DB	  5;	133 :          LEFT TAB
+	DB	134;	134 :
+	DB	135;	135 :
+	DB	  8;	136 :          LEFT ARROW
+	DB	  9;	137 :          RIGTH TAB
+	DB	 10;	138 :          DOWN ARROW
+	DB	 11;	139 :          PA3
+	DB	 12;	140 :          CLEAR
+	DB	 13;	141 :          CR
+	DB	 14;	142 :          PA4
+	DB	143;	143 :
+	DB	 16;	144 :          PA5
+	DB	145;	145 :
+	DB	146;	146 :
+	DB	147;	147 :
+	DB	 20;	148 :          SHIFT PA1
+	DB	 21;	149 :          SHIFT PA2
+	DB	150;	150 :
+
+	PAGE
+
+	DB	151;	151 :
+	DB	 24;	152 :          RIGTH ARROW
+	DB	 25;	153 :          SHIFT PA3
+	DB	 26;	154 :          UP ARROW
+	DB	 27;	155 :          SHIFT ESCAPE
+	DB	 28;	156 :          SHIFT PA4
+	DB	157;	157 :
+	DB	 30;	158 :          SHIFT PA5
+	DB	159;	159 :
+	DB	 32;	160 :          SPACE
+	DB	 49;	161 :          1 (NUMBER BLOCK)
+	DB	 50;	162 :          2
+	DB	 51;	163 :          3
+	DB	 52;	164 :          4
+	DB	 53;	165 :          5
+	DB	 54;	166 :          6
+	DB	 55;	167 :          7
+	DB	 56;	168 :          8
+	DB	 57;	169 :          9
+	DB	170;	170 :
+	DB	 48;	171 :          0
+	DB	 45;	172 :          _
+	DB	173;	173 :
+	DB	 46;	174 :          .
+	DB	139;	175 :          SHIFT PF4
+	DB	 48;	176 :          0
+	DB	 49;	177 :          1
+	DB	 50;	178 :          2
+	DB	 51;	179 :          3
+	DB	 52;	180 :          4
+	DB	 53;	181 :          5
+	DB	 54;	182 :          6
+	DB	 55;	183 :          7
+	DB	 56;	184 :          8
+	DB	 57;	185 :          9
+	DB	186;	186 :
+	DB	 48;	187 :          0
+	DB	 45;	188 :          _
+
+	PAGE
+
+	DB	189;	189 :
+	DB	 46;	190 :          .
+	DB	131;	191 :          PF4
+	DB	 18;	192 :          SHIFT HOME
+	DB	134;	193 :          PF7
+	DB	194;	194 :
+	DB	195;	195 :
+	DB	196;	196 :
+	DB	  5;	197 :          SHIFT LEFT TAB
+	DB	130;	198 :          PF3
+	DB	199;	199 :
+	DB	  8;	200 :          SHIFT LEFT ARROW
+	DB	201;	201 :          SHIFT RIGTH TAB
+	DB	 10;	202 :          SHIFT DOWN ARROW
+	DB	132;	203 :          PF5
+	DB	133;	204 :          PF6
+	DB	205;	205 :
+	DB	206;	206 :
+	DB	207;	207 :
+	DB	129;	208 :          PF2
+	DB	209;	209 :
+	DB	135;	210 :          PF8
+	DB	211;	211 :
+	DB	212;	212 :
+	DB	213;	213 :
+	DB	128;	214 :          PF1
+	DB	215;	215 :
+	DB	 24;	216 :          SHIFT RIGTH ARROW
+	DB	217;	217 :
+	DB	 26;	218 :          SHIFT UP ARROW
+	DB	219;	219 :
+	DB	220;	220 :
+	DB	221;	221 :
+	DB	222;	222 :
+	DB	 48;	223 :          0 (NUL)
+	DB	224;	224 :
+	DB	142;	225 :          SHIFT PF7
+	DB	226;	226 :
+
+	PAGE
+
+	DB	227;	227 :
+	DB	228;	228 :
+	DB	229;	229 :
+	DB	138;	230 :          SHIFT PF3
+	DB	231;	231 :
+	DB	232;	232 :
+	DB	233;	233 :
+	DB	234;	234 :
+	DB	140;	235 :          SHIFT PF5
+	DB	141;	236 :          SHIFT PF6
+	DB	237;	237 :
+	DB	238;	238 :
+	DB	239;	239 :
+	DB	137;	240 :          SHIFT PF2
+	DB	241;	241 :
+	DB	143;	242 :          SHIFT PF8
+	DB	243;	243 :
+	DB	244;	244 :
+	DB	245;	245 :
+	DB	136;	246 :          SHIFT PF1
+	DB	247;	247 :
+	DB	248;	248 :
+	DB	249;	249 :
+	DB	250;	250 :
+	DB	251;	251 :
+	DB	252;	252 :
+	DB	253;	253 :
+	DB	254;	254 :
+	DB	127;	255 :          SHIFT RUBOUT
+
