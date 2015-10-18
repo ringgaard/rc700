@@ -14,17 +14,27 @@
 #include "rc700.h"
 
 // RC752 amber colors.
+#define HI_COLOR 0xFFCC66
 #define FG_COLOR 0xCC9933
 #define BG_COLOR 0x552200
-#define BLACK    0x000000
+#define MI_COLOR 0x996611
+#define BORDER   0x000000
 
-#define MARGINX  100
-#define MARGINY  100
+pixel32_t palette32[16] = {
+  BG_COLOR, BG_COLOR, BG_COLOR, 0,
+  FG_COLOR, MI_COLOR, BG_COLOR, 0,
+  BG_COLOR, MI_COLOR, FG_COLOR, 0,
+  FG_COLOR, FG_COLOR, FG_COLOR, 0,
+};
+
+#define MARGINX  92
+#define MARGINY  109
 
 static struct vesa_mode_info mode;
 static pixel16_t *surface;
 static int pitch;
-pixel16_t palette[2];
+static pixel16_t palette[16];
+sigset_t blocked_sigmask, orig_sigmask;
 
 static pixel16_t screen_color(pixel32_t rgb) {
   BYTE r = (rgb >> 16) & 0xFF;
@@ -46,6 +56,8 @@ static void fill_rect(int x, int y, int width, int height, pixel16_t color) {
 }
 
 void rcterm_init() {
+  int i;
+
   // Get frame buffer and video mode info.
   int fb = open("/dev/fb0", 0);
   if (fb < 0) {
@@ -57,18 +69,23 @@ void rcterm_init() {
   close(fb);
 
   // Initialize video mode.
-  palette[0] = screen_color(BG_COLOR);
-  palette[1] = screen_color(FG_COLOR);
+  for (i = 0; i < 16; ++i) palette[i] = screen_color(palette32[i]);
   pitch = mode.bytes_per_scanline / sizeof(pixel16_t);
-  memset(surface, 0xFF, mode.bytes_per_scanline * mode.y_resolution);
-  fill_rect(0, 0, mode.x_resolution, mode.y_resolution, screen_color(BLACK));
+  fill_rect(0, 0, mode.x_resolution, mode.y_resolution, screen_color(BORDER));
+
+  sigemptyset(&blocked_sigmask);
+  sigaddset(&blocked_sigmask, SIGINT);
+  sigaddset(&blocked_sigmask, SIGTSTP);
+  sigaddset(&blocked_sigmask, SIGABRT);
+  sigprocmask(SIG_BLOCK, &blocked_sigmask, &orig_sigmask);
 }
 
 void rcterm_exit() {
+  sigprocmask(SIG_SETMASK, &orig_sigmask, NULL);
 }
 
 void rcterm_clear_screen(int cols, int rows) {
-  fill_rect(MARGINX / 2, MARGINY / 2, mode.x_resolution - MARGINX, mode.y_resolution - MARGINY, palette[0]);
+  fill_rect(MARGINX / 2, MARGINY / 2, mode.x_resolution - MARGINX, mode.y_resolution - MARGINY, screen_color(BG_COLOR));
 }
 
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {

@@ -13,6 +13,7 @@
 struct sector {
   BYTE *data;
   BYTE fill;
+  int present;
   int deleted;
   int bad;
   int dirty;
@@ -23,6 +24,7 @@ struct track {
   int sector_size;
   int transfer_rate;
   int mfm;
+  int present;
   struct sector sectors[MAX_SECTORS];
 };
 

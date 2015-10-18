@@ -43,6 +43,12 @@ ana2imd: ana2imd.c disk.c disk.h sim.h
 imd2bin: imd2bin.c disk.c disk.h
 	$(CC) -o $@ imd2bin.c disk.c
 
+imdinfo: imdinfo.c disk.c disk.h
+	$(CC) -o $@ imdinfo.c disk.c
+
+readbios: readbios.c disk.c disk.h
+	$(CC) -o $@ readbios.c disk.c
+
 rom2hex: rom2hex.c
 	$(CC) -o $@ rom2hex.c
 
@@ -77,5 +83,5 @@ rc700-sanos.exe: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sanos.c screen.c $(AUTOL
 	$(TCC) -o $@ $(TCCFLAGS) -I .. $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sanos.c screen.c 
 
 rc700.flp: rc700-sanos.exe rc700.lst
-	$(MKDFS) -d rc700.flp -b $(INSTALL)/boot/boot -l $(INSTALL)/boot/osldr.dll -k $(INSTALL)/boot/krnl.dll -K video=1280x1024x16 -c 1440 -i -f -S . -F rc700.lst
+	$(MKDFS) -d rc700.flp -b $(INSTALL)/boot/boot -l $(INSTALL)/boot/osldr.dll -k $(INSTALL)/boot/krnl.dll -K video=1024x768x16 -c 1440 -i -f -S . -F rc700.lst
 

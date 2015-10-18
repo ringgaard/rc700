@@ -123,7 +123,7 @@ extern int under_line;
 extern int cur_x;
 extern int cur_y;
 
-void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, unsigned char *text);
+void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, int pitch, int xmargin, int ymargin, unsigned char *text);
 void draw_screen16(pixel16_t *bitmap, pixel16_t *palette, int pitch, int xmargin, int ymargin, unsigned char *text);
 
 // rcterm-*.c

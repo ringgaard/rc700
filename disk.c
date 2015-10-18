@@ -114,6 +114,7 @@ struct disk *load_disk_image(char *imagefile) {
     }
 
     track = &disk->tracks[hdr->cylinder][hdr->head];
+    track->present = 1;
     switch (hdr->mode) {
       case 0: track->transfer_rate = 500; track->mfm = 0; break;
       case 1: track->transfer_rate = 300; track->mfm = 0; break;
@@ -143,6 +144,7 @@ struct disk *load_disk_image(char *imagefile) {
         return NULL;
       }
       sector = &track->sectors[i];
+      sector->present = 1;
       switch (*p++) {
         // 00      Sector data unavailable - could not be read
         case 0: sector->bad = 1; break;
@@ -175,7 +177,7 @@ struct disk *load_disk_image(char *imagefile) {
     }
   }
 
-  if (bad_sectors > 0) printf("warning: %s has %d bad sectors\n", imagefile, bad_sectors);
+  if (bad_sectors > 0) fprintf(stderr, "warning: %s has %d bad sectors\n", imagefile, bad_sectors);
   return disk;
 }
 
@@ -275,6 +277,7 @@ int write_disk_sector(struct disk *disk, int c, int h, int s, BYTE *data, int si
   }
   if (size > track->sector_size) size = track->sector_size;
   memcpy(sector->data, data, size);
+  sector->present = 1;
   sector->dirty = 1;
   sector->bad = 0;
   sector->deleted = 0;
@@ -293,6 +296,7 @@ int fill_disk_sector(struct disk *disk, int c, int h, int s, BYTE fill) {
   if (sector->dirty && sector->data) free(sector->data);
   sector->data = NULL;
   sector->fill = fill;
+  sector->present = 1;
   sector->dirty = 1;
   sector->bad = 0;
   sector->deleted = 0;

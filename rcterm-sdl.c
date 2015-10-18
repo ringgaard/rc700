@@ -70,7 +70,7 @@ void rcterm_clear_screen(int cols, int rows) {
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
   L(printf("rcterm: screen at %04x cols=%d, rows=%d\n", screen - ram, cols, rows));
   SDL_LockSurface(term);
-  draw_screen32(term->pixels, palette, screen);
+  draw_screen32(term->pixels, palette, term->pitch / sizeof(pixel32_t), 0, 0, screen);
   SDL_UnlockSurface(term);
   SDL_Flip(term);
 }

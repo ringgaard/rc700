@@ -28,7 +28,7 @@
 #define FTP_STAT_EOF        0xff
 
 #define FTP_FNAME_SIZE   256
-#define FTP_FN_LOWERCASE
+//#define FTP_FN_LOWERCASE
 
 struct ftp {
   BYTE status;

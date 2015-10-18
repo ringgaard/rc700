@@ -322,7 +322,7 @@ void fdc_write_sectors(int drive) {
       // Fetch data from DMA channel.
       addr = dma_fetch(1, &size);
 
-      L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes to %04X, %d kbps, %s\n", C, H, R - 1, size, (WORD) (addr - ram), track->transfer_rate, track->mfm ? "MFM" : "FM"));
+      L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes from %04X, %d kbps, %s\n", C, H, R - 1, size, (WORD) (addr - ram), track->transfer_rate, track->mfm ? "MFM" : "FM"));
       
       if (size != track->sector_size) {
         W(printf("fdc: partial sector C=%d,H=%d,S=%d on drive %d, %d bytes, %d expected\n", C, H, R - 1, drive, size, track->sector_size));
