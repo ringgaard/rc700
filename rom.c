@@ -77,6 +77,16 @@ void sem_data_out(BYTE data, int dev) {
   charram[(sem_char << 4) + sem_line] = data;
 }
 
+void rom_floppy_boot_patch() {
+  // Change 'LD (FLBFLG),A' to NOPs in ROB358.
+  ram[PROM0_ADDR + 0x12 + 0xC3] = 0;
+  ram[PROM0_ADDR + 0x12 + 0xC4] = 0;
+  ram[PROM0_ADDR + 0x12 + 0xC5] = 0;
+
+  // Change initial value of FLBFLG to 1.
+  ram[PROM0_ADDR + 0x12 + 0x54B] = 1;
+}
+
 void init_rom() {
   int i;
 

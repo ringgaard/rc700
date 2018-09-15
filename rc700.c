@@ -26,6 +26,7 @@ static struct port ports[256];
 char *floppy[MAX_FLOPPIES];
 int num_floppies = 0;
 char *harddisk = NULL;
+char *ftpdir = NULL;
 
 // Emulate a 4 Mhz Z80 CPU with 50 Hz screen refresh rate.
 #define CPU_CLOCK_FREQUENCY   4000000
@@ -34,7 +35,7 @@ char *harddisk = NULL;
 #define MILLISECS_PER_FRAME   (1000 / FRAMES_PER_SECOND)
 
 // Number of CPU cycles executed in current frame.
-int quantum = 0; 
+int quantum = 0;
 
 // Milliseconds delay per frame taking emulation speed into account.
 int ms_per_frame = MILLISECS_PER_FRAME;
@@ -137,7 +138,7 @@ static void init_rc700() {
   init_crt();
   init_fdc();
   init_wdc();
-  init_ftp();
+  init_ftp(ftpdir);
 #ifdef HAS_MEMDISK
   init_mdc();
 #endif
@@ -177,6 +178,8 @@ void usage(char *pgm) {
   printf("-suspend     (start suspended)\n");
   printf("-speed PCT   (set emulation speed)\n");
   printf("-hd IMG      (mount hard disk)\n");
+  printf("-bootf       (force boot from floppy)\n");
+  printf("-ftp DIR     (ftp directory)\n");
 }
 
 #ifdef __APPLE__
@@ -189,6 +192,7 @@ int main(int argc, char *argv[]) {
 #endif
   int suspend = 0;
   int monitor = 0;
+  int bootf = 0;
   int i;
 
   char *s, *p;
@@ -205,10 +209,14 @@ int main(int argc, char *argv[]) {
         monitor = 1;
       } else if (strcmp(argv[i], "-suspend") == 0) {
         suspend = 1;
+      } else if (strcmp(argv[i], "-bootf") == 0) {
+        bootf = 1;
       } else if (strcmp(argv[i], "-speed") == 0 && i + 1 < argc) {
         set_emulation_speed(atoi(argv[i++ + 1]));
       } else if (strcmp(argv[i], "-hd") == 0 && i + 1 < argc) {
         harddisk = argv[i++ + 1];
+      } else if (strcmp(argv[i], "-ftp") == 0 && i + 1 < argc) {
+        ftpdir = argv[i++ + 1];
       } else {
         usage(argv[0]);
         exit(1);
@@ -230,6 +238,9 @@ int main(int argc, char *argv[]) {
   // Initialize emulator.
   init_rc700();
   rcterm_init();
+
+  // Patch boot ROM to boot from floppy.
+  if (bootf) rom_floppy_boot_patch();
 
   // Run emulator.
   if (suspend) {
@@ -253,7 +264,7 @@ int main(int argc, char *argv[]) {
   sigaction(SIGINT, &sa, NULL);
 #endif
 
-  // Flush changes to floppy disk images.  
+  // Flush changes to floppy disk images.
   for (i = 0; i < num_floppies; ++i) {
     fdc_flush_disk(i);
   }

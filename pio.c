@@ -129,6 +129,7 @@ void init_pio() {
   for (i = 0; i < NUM_PIO_PORTS; ++i) {
     memset(&pio[i], 0, sizeof(struct parallel_port));
   }
+
   register_port(0x10, pio_data_in, pio_data_out, 0);
   register_port(0x11, pio_data_in, pio_data_out, 1);
   register_port(0x12, pio_ctrl_in, pio_ctrl_out, 0);

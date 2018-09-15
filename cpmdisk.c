@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "sim.h"
+#include "cpu.h"
 #include "disk.h"
 
 //#define DEBUG_CPMDISK

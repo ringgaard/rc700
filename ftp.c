@@ -33,6 +33,7 @@
 struct ftp {
   BYTE status;
   char filename[FTP_FNAME_SIZE];
+  char *dir;
   int fnidx;
   int fnmode;
   FILE *file;
@@ -47,11 +48,23 @@ void ftp_reset() {
 }
 
 void ftp_filename() {
+  int len;
+
   L(printf("ftp: filename\n"));
   ftp.fnmode = 1;
   ftp.fnidx = 0;
   memset(ftp.filename, 0, FTP_FNAME_SIZE);
   ftp.status = FTP_STAT_OK;
+  if (ftp.dir) {
+    len = strlen(ftp.dir);
+    if (len < FTP_FNAME_SIZE - 1) {
+      memcpy(ftp.filename, ftp.dir, len);
+      ftp.filename[len] = '/';
+      ftp.fnidx = len + 1;
+    } else {
+      ftp.status = FTP_STAT_OVERFLOW;
+    }
+  }
 }
 
 void ftp_open() {
@@ -149,7 +162,7 @@ void ftp_data_out(BYTE data, int dev) {
       ftp.status = 0;
     } else {
       ftp.status = FTP_STAT_OVERFLOW;
-    } 
+    }
   } else if (ftp.file) {
     if (fputc(data, ftp.file) == EOF) {
       ftp.status = errno;
@@ -161,8 +174,9 @@ void ftp_data_out(BYTE data, int dev) {
   }
 }
 
-void init_ftp() {
+void init_ftp(char *dir) {
   memset(&ftp, 0, sizeof(struct ftp));
+  ftp.dir = dir;
   register_port(0xe0, ftp_status, ftp_command, 0);
   register_port(0xe1, ftp_data_in, ftp_data_out, 0);
 }

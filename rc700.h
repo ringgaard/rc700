@@ -46,6 +46,7 @@ void ctc_trigger(int channel);
 // rom.c
 
 void init_rom();
+void rom_floppy_boot_patch();
 
 // pio.c
 
@@ -93,7 +94,7 @@ int wdc_mount_harddisk(int drive, char *imagefile);
 
 // ftp.c
 
-void init_ftp();
+void init_ftp(char *dir);
 
 // memdisk.c
 void init_mdc();

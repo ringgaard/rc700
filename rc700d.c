@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <time.h>
@@ -20,17 +21,22 @@
 #include "websock.h"
 
 // Message types for emulator protocol.
-#define MSG_RUN    0
-#define MSG_HALT   1
-#define MSG_MOUNT  2
-#define MSG_CLRSCR 3
-#define MSG_CURSOR 4
-#define MSG_SCREEN 5
-#define MSG_KEY    6
-#define MSG_PRINT  7
+#define MSG_RUN      0
+#define MSG_HALT     1
+#define MSG_MOUNT    2
+#define MSG_CLRSCR   3
+#define MSG_CURSOR   4
+#define MSG_SCREEN   5
+#define MSG_KEY      6
+#define MSG_PRINT    7
+#define MSG_NOUNCE   8
+#define MSG_FEEDBACK 9
 
 // Directory for disk images.
 char *image_dir = ".";
+
+// File for feedback.
+char *feedback_filename = NULL;
 
 // WebSocket for communication with client.
 struct websock ws;
@@ -44,6 +50,12 @@ int printer_buffer_len = 0;
 #define COMMAND_BUFFER_SIZE 127
 BYTE command_buffer[COMMAND_BUFFER_SIZE + 1];
 int command_buffer_len = 0;
+
+// Current nounce.
+#define MIN_NOUNCE_SIZE 128
+#define MAX_NOUNCE_SIZE 256
+BYTE nounce[MAX_NOUNCE_SIZE];
+int nounce_size = 0;
 
 // I/O handlers for all I/O ports.
 static struct port ports[256];
@@ -59,7 +71,7 @@ static struct port ports[256];
 #define MAX_IDLE_FRAMES       (MAX_IDLE_SECONDS * FRAMES_PER_SECOND)
 
 // Number of CPU cycles executed in current frame.
-int quantum = 0; 
+int quantum = 0;
 
 // Milliseconds delay per frame taking emulation speed into account.
 int ms_per_frame = MILLISECS_PER_FRAME;
@@ -114,7 +126,7 @@ void logmsg(const char *fmt, ...) {
   localtime_r(&now, &tm);
 
   printf("%04d/%02d/%02d %02d:%02d:%02d [%d] %s\n",
-         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, 
+         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
          tm.tm_hour, tm.tm_min, tm.tm_sec, getpid(), buffer);
   fflush(stdout);
 }
@@ -130,6 +142,30 @@ void flush_printer_buffer() {
     cpu_state = STOPPED;
   }
   printer_buffer_len = 0;
+}
+
+// Record feedback.
+void record_feedback(const char *feedback, int len) {
+  FILE *f;
+  time_t now;
+  struct tm tm;
+
+  if (!feedback_filename) return;
+  f = fopen(feedback_filename, "a");
+  if (!f) {
+    logmsg("error opening feedback file");
+    return;
+  }
+
+  now = time(NULL);
+  localtime_r(&now, &tm);
+
+  fprintf(f, "%04d/%02d/%02d %02d:%02d:%02d [%d]\n",
+         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+         tm.tm_hour, tm.tm_min, tm.tm_sec, getpid());
+  fwrite(feedback, len, 1, f);
+  fprintf(f, "\n");
+  fclose(f);
 }
 
 // CPU poll handler.
@@ -230,12 +266,13 @@ int rcterm_gotoxy(int col, int row) {
     cpu_error = USERINT;
     cpu_state = STOPPED;
   }
-  
+
   return 0;
 }
 
 int rcterm_keypressed() {
   int rc;
+  int buflen;
 
   // Try to receive packet from client.
   rc = websock_recv(&ws, WS_NBLOCK);
@@ -244,12 +281,13 @@ int rcterm_keypressed() {
     cpu_state = STOPPED;
   }
   if (rc <= 0) return -1;
+  buflen = ws.end - ws.buffer;
 
   // Reset idle watchdog.
   remaining_idle_frames = MAX_IDLE_FRAMES;
 
   // Check for key press event.
-  if (ws.end - ws.buffer == 2 && ws.buffer[0] == MSG_KEY) {
+  if (buflen == 2 && ws.buffer[0] == MSG_KEY) {
     int key = ws.buffer[1];
     if (key >= ' ' && key < 127) {
       if (command_buffer_len < COMMAND_BUFFER_SIZE) {
@@ -264,10 +302,20 @@ int rcterm_keypressed() {
   }
 
   // Check for halt command.
-  if (ws.end - ws.buffer == 1 && ws.buffer[0] == MSG_HALT) {
+  if (buflen == 1 && ws.buffer[0] == MSG_HALT) {
     logmsg("halt");
     cpu_error = USERINT;
     cpu_state = STOPPED;
+  }
+
+  // Check for feedback.
+  if (buflen > 1 && ws.buffer[0] == MSG_FEEDBACK) {
+    int i;
+    int len = buflen - 1;
+    logmsg("feedback %d", len);
+    char *feedback = ws.buffer + 1;
+    for (i = 0; i < len; ++i) feedback[i] ^= nounce[i % nounce_size];
+    record_feedback(feedback, len);
   }
 
   return -1;
@@ -302,6 +350,20 @@ int mount_disk(int drive, char *image) {
   return fdc_mount_disk(drive, path, FDC_READONLY);
 }
 
+void generate_nounce() {
+  int i;
+  unsigned char msg[1];
+
+  // Generate random nounce.
+  srand(time(NULL) ^ getpid());
+  nounce_size = (rand() % (MAX_NOUNCE_SIZE - MIN_NOUNCE_SIZE)) + MIN_NOUNCE_SIZE;
+  for (i = 0; i < nounce_size; ++i) nounce[i] = rand();
+
+  // Send nounce to client.
+  msg[0] = MSG_NOUNCE;
+  websock_send(&ws, WS_OP_BIN, msg, 1, nounce, nounce_size);
+}
+
 // Run emulator instance.
 int run(int sock) {
   struct timeval timeout;
@@ -331,6 +393,7 @@ int run(int sock) {
 
   // Initialize emulator.
   init_rc700();
+  generate_nounce();
 
   // Run emulator.
   cpu_state = STOPPED;
@@ -370,7 +433,7 @@ int run(int sock) {
 }
 
 static int terminate = 0;
- 
+
 static void break_handler(int sig) {
   terminate = 1;
 }
@@ -396,6 +459,8 @@ int main(int argc, char *argv[]) {
         port = atoi(argv[i++ + 1]);
       } else if (strcmp(argv[i], "-imgdir") == 0 && i + 1 < argc) {
         image_dir = argv[i++ + 1];
+      } else if (strcmp(argv[i], "-feedback") == 0 && i + 1 < argc) {
+        feedback_filename = argv[i++ + 1];
       } else {
         exit(1);
       }
