@@ -32,8 +32,10 @@ static BYTE *clipboard = NULL;
 static BYTE *clipboard_current = NULL;
 static BYTE *clipboard_end = NULL;
 
-int window_width = SCREEN_WIDTH / 2;
-int window_height = SCREEN_HEIGHT / 2;
+#define SCREEN_SCALE 1
+
+int window_width = SCREEN_WIDTH * SCREEN_SCALE;
+int window_height = SCREEN_HEIGHT * SCREEN_SCALE;
 
 // RC752 amber colors.
 #define HI_COLOR 0xFFCC66
@@ -200,16 +202,16 @@ int rcterm_keypressed() {
       shift = event.key.keysym.mod & KMOD_SHIFT;
       ctrl = event.key.keysym.mod & KMOD_CTRL;
       switch (sym) {
-        case SDLK_UP: 
+        case SDLK_UP:
           return shift ? 0x9A : 0x1A;
 
-        case SDLK_DOWN: 
+        case SDLK_DOWN:
           return shift ? 0x8A : 0x0A;
 
         case SDLK_LEFT:
           return shift ? 0x88 : 0x08;
 
-        case SDLK_RIGHT: 
+        case SDLK_RIGHT:
           return shift ? 0x98 : 0x18;
 
         case SDLK_BACKSPACE: // Mapped to left/rubout
@@ -234,9 +236,9 @@ int rcterm_keypressed() {
         case SDLK_RETURN:
           return shift ? 0x8D : 0x0D;
 
-        case SDLK_SPACE: 
+        case SDLK_SPACE:
           return shift ? 0x0A : 0x20;
-   
+
         case SDLK_F1: // Mapped to PA1
           return shift ? 0x94 : 0x83;
 
