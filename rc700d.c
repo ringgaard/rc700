@@ -392,6 +392,7 @@ int run(int sock) {
   }
 
   // Initialize emulator.
+  logmsg("init");
   init_rc700();
   generate_nounce();
 

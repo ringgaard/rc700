@@ -133,7 +133,7 @@ int websock_handshake(struct websock *ws) {
   sha1_finish_base64(&ctx, response);
 
   // Send upgrade reply.
-  sprintf(reply, 
+  sprintf(reply,
           "HTTP/1.1 101 Switching Protocols\r\n"
           "Upgrade: websocket\r\n"
           "Connection: Upgrade\r\n"
@@ -191,7 +191,7 @@ int websock_recv_fragment(struct websock *ws) {
 }
 
 int websock_send(struct websock *ws, int type,
-                 void *data1, int size1, 
+                 void *data1, int size1,
                  void *data2, int size2) {
   struct iovec iov[3];
   int n;
