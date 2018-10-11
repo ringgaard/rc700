@@ -268,6 +268,10 @@ int websock_recv(struct websock *ws, int mode) {
         websock_send(ws, WS_OP_PONG, ws->buffer, ws->end - ws->buffer, NULL, 0);
         break;
 
+      case WS_OP_PONG:
+        // Ignore PONG frames.
+        break;
+
       default:
         printf("unknown opcode %d\n", ws->opcode & WS_OPCODE);
         return -1;
