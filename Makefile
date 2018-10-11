@@ -29,7 +29,7 @@ rc700-vt100: $(SRCFILES) $(HDRFILES) rc700.c rcterm-vt100.c $(AUTOLOAD).c
 	$(CC) -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-vt100.c
 
 rc700d: $(SRCFILES) $(HDRFILES) rc700d.c websock.c sha1.c sha1.h $(AUTOLOAD).c
-	$(CC) -m32 -o $@ -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700d.c websock.c sha1.c
+	$(CC) -o $@ -m32 -O3 -Wno-unused-result $(SRCFILES) $(AUTOLOAD).c rc700d.c websock.c sha1.c
 
 $(AUTOLOAD).c: rom2struct $(AUTOLOAD).rom
 	./rom2struct $(AUTOLOAD).rom $(AUTOLOAD) > $(AUTOLOAD).c

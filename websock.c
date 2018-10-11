@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -102,7 +103,7 @@ int websock_handshake(struct websock *ws) {
   // Receive HTTP upgrade request.
   websock_mode(ws, WS_BLOCK);
   for (;;) {
-    if (websock_fill(ws) < 0) return -1;
+    if (websock_fill(ws) <= 0) return -1;
     body = NULL;
     for (p = ws->buffer; p < ws->end - 3; ++p) {
       if (*p == '\r' && memcmp(p, "\r\n\r\n", 4) == 0) {

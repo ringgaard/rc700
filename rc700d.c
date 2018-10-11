@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
 
