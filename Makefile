@@ -57,9 +57,12 @@ cpmdisk: cpmdisk.c disk.c disk.h
 
 comaldisk: cpmdisk.c disk.c disk.h
 	$(CC) -o $@ cpmdisk.c disk.c -DCOMAL
-	
+
 blankimd: blankimd.c disk.c disk.h
 	$(CC) -o $@ blankimd.c disk.c
+
+raw2imd: raw2imd.c disk.c disk.h
+	$(CC) -o $@ raw2imd.c disk.c
 
 rxtext: rtext.c
 	$(CC) -o $@ rctext.c
@@ -80,7 +83,7 @@ TCCFLAGS=-B $(SANOS)/linux/install/usr
 MKDFS=$(SANOS)/linux/tools/mkdfs
 
 rc700-sanos.exe: $(SRCFILES) $(HDRFILES) rc700.c rcterm-sanos.c screen.c $(AUTOLOAD).c
-	$(TCC) -o $@ $(TCCFLAGS) -I .. $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sanos.c screen.c 
+	$(TCC) -o $@ $(TCCFLAGS) -I .. $(SRCFILES) $(AUTOLOAD).c rc700.c rcterm-sanos.c screen.c
 
 rc700.flp: rc700-sanos.exe rc700.lst
 	$(MKDFS) -d rc700.flp -b $(INSTALL)/boot/boot -l $(INSTALL)/boot/osldr.dll -k $(INSTALL)/boot/krnl.dll -K video=1024x768x16 -c 1440 -i -f -S . -F rc700.lst

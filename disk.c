@@ -128,7 +128,7 @@ struct disk *load_disk_image(char *imagefile) {
     if (hdr->cylinder >= disk->num_tracks) disk->num_tracks = hdr->cylinder + 1;
 
 #ifdef DEBUG_DISK
-    printf("track %d side %d: mfm %d xferrate %d sectors %d size %d\n", 
+    printf("track %d side %d: mfm %d xferrate %d sectors %d size %d\n",
            hdr->cylinder, hdr->head,
            track->mfm, track->transfer_rate, track->num_sectors, track->sector_size);
 #endif
@@ -193,7 +193,7 @@ int save_disk_image(struct disk *disk) {
   int type;
 
 #ifdef DEBUG_DISK
-  printf("write disk image to %s\n", imagefile);
+  printf("write disk image to %s\n", disk->filename);
 #endif
 
   // Check for read-only image.
@@ -205,7 +205,7 @@ int save_disk_image(struct disk *disk) {
     perror(disk->filename);
     return -1;
   }
-  
+
   // Write header.
   time(&now);
   tm = localtime(&now);
@@ -213,7 +213,7 @@ int save_disk_image(struct disk *disk) {
           tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900,
           tm->tm_hour, tm->tm_min, tm->tm_sec, disk->label);
 
-  // Write tracks.  
+  // Write tracks.
   for (c = 0; c < disk->num_tracks; ++c) {
     for (h = 0; h < MAX_SIDES; ++h) {
       // Write track header.
@@ -234,7 +234,7 @@ int save_disk_image(struct disk *disk) {
 
       // Write sector map.
       for (s = 0; s < track->num_sectors; ++s) putc(s, f);
-      
+
       // Write sectors.
       for (s = 0; s < track->num_sectors; ++s) {
         sector = &track->sectors[s];
@@ -266,15 +266,25 @@ int save_disk_image(struct disk *disk) {
 int write_disk_sector(struct disk *disk, int c, int h, int s, BYTE *data, int size) {
   struct track *track = &disk->tracks[c][h];
   struct sector *sector = &track->sectors[s];
+  int i;
+
+  // Use fill for sector if all bytes are the same.
+  for (i = 0; i < size; ++i) {
+    if (data[i] != data[0]) break;
+  }
+  if (i == size) return fill_disk_sector(disk, c, h, s, data[0]);
 
 #ifdef DEBUG_DISK
   printf("write disk sector c=%d,h=%d,s=%d, %d bytes\n", c, h, s, size);
 #endif
 
+  // Allocate data for sector.
   if (!sector->dirty || !sector->data) {
     sector->data = malloc(track->sector_size);
     if (!sector->data) return -1;
   }
+
+  // Copy data to sector.
   if (size > track->sector_size) size = track->sector_size;
   memcpy(sector->data, data, size);
   sector->present = 1;
@@ -308,7 +318,7 @@ void free_disk_image(struct disk *disk) {
   int c, h, s;
   struct track *track;
   struct sector *sector;
-  
+
   for (c = 0; c < disk->num_tracks; ++c) {
     for (h = 0; h < MAX_SIDES; ++h) {
       track = &disk->tracks[c][h];
@@ -320,5 +330,37 @@ void free_disk_image(struct disk *disk) {
   }
   free(disk->data);
   free(disk);
+}
+
+struct disk *format_disk_image(int tracks, int sectors, int sectsize, int mfm) {
+  struct disk *disk;
+  struct track *track;
+  struct sector *sector;
+  int c, h, s;
+  BYTE filler = 0;
+
+  // Initialize disk structure.
+  disk = malloc(sizeof(struct disk));
+  if (!disk) return NULL;
+  memset(disk, 0, sizeof(struct disk));
+  disk->num_tracks = tracks;
+  disk->label = "";
+
+  // Format tracks.
+  for (c = 0; c < disk->num_tracks; ++c) {
+    for (h = 0; h < MAX_SIDES; ++h) {
+      track = &disk->tracks[c][h];
+      track->num_sectors = sectors;
+      track->sector_size = sectsize;
+      track->transfer_rate = 300;
+      track->mfm = mfm;
+      for (s = 0; s < track->num_sectors; ++s) {
+        sector = &track->sectors[s];
+        sector->fill = filler;
+      }
+    }
+  }
+
+  return disk;
 }
 
