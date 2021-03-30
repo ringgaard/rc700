@@ -179,6 +179,7 @@ void usage(char *pgm) {
   printf("-speed PCT   (set emulation speed)\n");
   printf("-hd IMG      (mount hard disk)\n");
   printf("-bootf       (force boot from floppy)\n");
+  printf("-maxi        (8\" maxi disks)\n");
   printf("-ftp DIR     (ftp directory)\n");
 }
 
@@ -211,6 +212,8 @@ int main(int argc, char *argv[]) {
         suspend = 1;
       } else if (strcmp(argv[i], "-bootf") == 0) {
         bootf = 1;
+      } else if (strcmp(argv[i], "-maxi") == 0) {
+        dip_switches &= ~0x80;
       } else if (strcmp(argv[i], "-speed") == 0 && i + 1 < argc) {
         set_emulation_speed(atoi(argv[i++ + 1]));
       } else if (strcmp(argv[i], "-hd") == 0 && i + 1 < argc) {

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "sim.h"
+#include "cpu.h"
 #include "disk.h"
 
 int main(int argc, char *argv[]) {
@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 
   // Clear all data.
   for (c = 0; c < disk->num_tracks; ++c) {
-    for (h = 0; h < MAX_SIDES; ++h) {
+    for (h = 0; h < disk->num_sides; ++h) {
       struct track *track = &disk->tracks[c][h];
       for (s = 0; s < track->num_sectors; ++s) {
         fill_disk_sector(disk, c, h, s, 0xe5);

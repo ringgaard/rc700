@@ -9,6 +9,7 @@
 
 #define RC_FORMAT   0
 #define CPM_FORMAT  1
+#define IBM_FORMAT  1
 
 struct side {
   char *filename;
@@ -51,13 +52,14 @@ int main(int argc, char *argv[]) {
   struct side t0side[2];
   struct disk *disk;
   int c, h, s;
-  int cyls, sectsize, sect_per_track, mfm;
+  int cyls, sectsize, sect_per_track, mfm, sides;
   int tracks;
   BYTE *p;
 
   // Get arguments.
   if (argc < 5) {
-    fprintf(stderr, "usage: %s [cpm|rc] <imd> <side 0> <side 1>\n", argv[0]);
+    fprintf(stderr, "usage: %s [cpm|rc|ibm] <imd> <side 0> <side 1>\n",
+            argv[0]);
     return 1;
   }
   if (strcmp(argv[1], "rc") == 0) {
@@ -66,6 +68,7 @@ int main(int argc, char *argv[]) {
     cyls = 35;
     sectsize = 128;
     sect_per_track = 16;
+    sides = 2;
     mfm = 0;
   } else if (strcmp(argv[1], "cpm") == 0) {
     // 9 sectors per track, 512 bytes per sector, two sides, 35 tracks, MFM.
@@ -73,7 +76,16 @@ int main(int argc, char *argv[]) {
     cyls = 35;
     sectsize = 512;
     sect_per_track = 9;
+    sides = 2;
     mfm = 1;
+  } else if (strcmp(argv[1], "ibm") == 0) {
+    // 26 sectors, 128 bytes per sector, single side, 77 tracks, single-density.
+    format = IBM_FORMAT;
+    cyls = 77;
+    sectsize = 128;
+    sect_per_track = 26;
+    sides = 1;
+    mfm = 0;
   } else {
     fprintf(stderr, "error: unkown disk type: %s\n", argv[1]);
     return 1;
@@ -90,12 +102,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Initialize blank disk image.
-  disk = format_disk_image(cyls, sect_per_track, sectsize, mfm);
+  disk = format_disk_image(cyls, sides, sect_per_track, sectsize, mfm);
   strcpy(disk->filename, imdfn);
   disk->label = "";
 
   // Read raw disk images.
-  for (h = 0; h < 2; ++h) {
+  for (h = 0; h < sides; ++h) {
     // Read raw data for side from file.
     printf("reading side %d from %s\n", h, side[h].filename);
     side[h].size = get_file_data(side[h].filename, &side[h].data);

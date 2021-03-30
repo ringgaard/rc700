@@ -38,7 +38,7 @@ BYTE sem_char = 0;
 BYTE sem_line = 0;
 
 // DIP switches:
-//   0x00: Maxi floppy (8") 
+//   0x00: Maxi floppy (8")
 //   0x80: Mini floppy (5 1/4")
 
 #ifndef DIPSWITCH

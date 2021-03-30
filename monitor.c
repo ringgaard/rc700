@@ -49,7 +49,7 @@ void printins() {
 
 // Handling of software breakpoints (HALT opcode):
 //
-// Output: 
+// Output:
 //   0 breakpoint or other HALT opcode reached (stop)
 //   1 breakpoint reached, passcounter not reached (continue)
 static int handle_break() {
@@ -58,7 +58,7 @@ static int handle_break() {
   int break_address;
 
   // Search for breakpoint.
-  for (i = 0; i < SBSIZE; i++) { 
+  for (i = 0; i < SBSIZE; i++) {
     if (soft[i].sb_adr == PC - ram - 1) goto was_softbreak;
   }
   return 0;
@@ -66,7 +66,7 @@ static int handle_break() {
 was_softbreak:
 #ifdef HISIZE
   // Update history.
-  h_next--;     
+  h_next--;
   if (h_next < 0) h_next = 0;
 #endif
 
@@ -320,7 +320,7 @@ static void do_fill(char *s) {
 static void do_move(char *s) {
   BYTE *p1, *p2;
   int count;
-  
+
   while (isspace(*s)) s++;
   p1 = ram + exatoi(s);
   while (*s != ',' && *s != '\0') s++;
@@ -661,7 +661,7 @@ static void do_clock() {
   BYTE save[3];
 
   // Save memory locations 0000H - 0002H.
-  save[0] = *(ram + 0x0000);  
+  save[0] = *(ram + 0x0000);
   save[1] = *(ram + 0x0001);
   save[2] = *(ram + 0x0002);
 
@@ -685,10 +685,10 @@ static void do_clock() {
   alarm(3);
 
   // Start CPU.
-  cpu();        
+  cpu();
 
   // Restore memory locations 0000H - 0002H.
-  *(ram + 0x0000) = save[0];  
+  *(ram + 0x0000) = save[0];
   *(ram + 0x0001) = save[1];
   *(ram + 0x0002) = save[2];
 
@@ -748,7 +748,7 @@ static int load_mos(int fd, char *fn) {
 
   // Read load address.
   read(fd, (char *) fileb, 3);
-  
+
   // ...and set if not given.
   if (wrk_ram == NULL) {
     wrk_ram = ram + (fileb[2] * 256 + fileb[1]);
@@ -765,11 +765,11 @@ static int load_mos(int fd, char *fn) {
   PC = wrk_ram;
   return rc;
 }
- 
+
 // Loader for Intel hex files.
-// Each line has the following format: 
+// Each line has the following format:
 //   :llaaaatt[dd...]cc
-// 
+//
 // ll   length of record
 // aaaa address for data
 // tt   record type (0=data, 1=eof)
@@ -792,7 +792,7 @@ static int load_intel(int fd, char *fn) {
   while (!eof) {
     // Read next line.
     if (read(fd, &ch, 1) != 1) break;
-    
+
     // Ignore lines not starting with colon.
     if (ch == ':') {
       reclen = 0;
@@ -921,6 +921,11 @@ static int do_mount(char *s) {
   return fdc_mount_disk(drive & 3, fn, 0);
 }
 
+static int do_disk_swap() {
+  fdc_swap_disks();
+  return 0;
+}
+
 // Output help text.
 static void do_help() {
   puts("r filename[,address]      read object into memory");
@@ -946,6 +951,7 @@ static void do_help() {
   puts("s                         show settings");
   puts("n                         dump screen buffer");
   puts("M filename[,drive]        mount disk drive");
+  puts("S                         swap disks");
   puts("q                         quit");
 }
 
@@ -1036,6 +1042,10 @@ void mon() {
 
       case 'M':
         do_mount(cmd + 1);
+        break;
+
+      case 'S':
+        do_disk_swap();
         break;
 
       case '?':

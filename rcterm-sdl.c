@@ -70,7 +70,7 @@ void rcterm_clear_screen(int cols, int rows) {
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
   L(printf("rcterm: screen at %04x cols=%d, rows=%d\n", screen - ram, cols, rows));
   SDL_LockSurface(term);
-  draw_screen32(term->pixels, palette, term->pitch / sizeof(pixel32_t), 0, 0, screen);
+  draw_screen32(term->pixels, palette, term->pitch / sizeof(pixel32_t), 0, 0, 1, screen);
   SDL_UnlockSurface(term);
   SDL_Flip(term);
 }
@@ -101,16 +101,16 @@ int rcterm_keypressed() {
       sym = event.key.keysym.sym;
       shift = event.key.keysym.mod & KMOD_SHIFT;
       switch (sym) {
-        case SDLK_UP: 
+        case SDLK_UP:
           return shift ? 0x9A : 0x1A;
 
-        case SDLK_DOWN: 
+        case SDLK_DOWN:
           return shift ? 0x8A : 0x0A;
 
         case SDLK_LEFT:
           return shift ? 0x88 : 0x08;
 
-        case SDLK_RIGHT: 
+        case SDLK_RIGHT:
           return shift ? 0x98 : 0x18;
 
         case SDLK_BACKSPACE: // Mapped to left/rubout
@@ -122,18 +122,18 @@ int rcterm_keypressed() {
         case SDLK_HOME: // Mapped to reset
           return 0x81;
 
-        case SDLK_ESCAPE: 
+        case SDLK_ESCAPE:
           return shift ? 0x9B : 0x1B;
 
-        case SDLK_TAB: 
+        case SDLK_TAB:
           return shift ? 0x05 : 0x09;
 
-        case SDLK_RETURN: 
+        case SDLK_RETURN:
           return shift ? 0x8D : 0x0D;
 
-        case SDLK_SPACE: 
+        case SDLK_SPACE:
           return shift ? 0x0A : 0x20;
-   
+
         case SDLK_F1: // Mapped to PA1
           return shift ? 0x94 : 0x83;
 
@@ -148,6 +148,10 @@ int rcterm_keypressed() {
 
         case SDLK_F5: // Mapped to PA5
           return shift ? 0x9E : 0x90;
+
+        case SDLK_F9:
+          fdc_swap_disks();
+          return -1;
 
         case SDLK_F10:
           cpu_error = USERINT;
@@ -170,7 +174,7 @@ int rcterm_keypressed() {
           }
       }
       break;
-    
+
     case SDL_QUIT:
       cpu_error = USERINT;
       cpu_state = STOPPED;

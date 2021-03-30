@@ -32,7 +32,7 @@ static BYTE *clipboard = NULL;
 static BYTE *clipboard_current = NULL;
 static BYTE *clipboard_end = NULL;
 
-#define SCREEN_SCALE 1
+#define SCREEN_SCALE 1.75
 
 int window_width = SCREEN_WIDTH * SCREEN_SCALE;
 int window_height = SCREEN_HEIGHT * SCREEN_SCALE;
@@ -72,15 +72,10 @@ void rcterm_init() {
                               SDL_PIXELFORMAT_ARGB8888,
                               SDL_TEXTUREACCESS_STREAMING,
                               window_width, window_height);
-  term = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP,
+  term = SDL_CreateRGBSurface(0, RC_SCREEN_WIDTH, RC_SCREEN_HEIGHT, SCREEN_BPP,
                               0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-
-  if (window_width != SCREEN_WIDTH || window_height != SCREEN_HEIGHT) {
-    surface = SDL_CreateRGBSurface(0, window_width, window_height, SCREEN_BPP,
-                                   0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-  } else {
-    surface = term;
-  }
+  surface = SDL_CreateRGBSurface(0, window_width, window_height, SCREEN_BPP,
+                                 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
   for (i = 0; i < 16; ++i) palette[i] = screen_color(palette[i]);
 }
@@ -105,8 +100,8 @@ void rcterm_clear_screen(int cols, int rows) {
 
 void rcterm_screen(BYTE *screen, BYTE *prev, int cols, int rows) {
   L(printf("rcterm: screen at %04x cols=%d, rows=%d\n", screen - ram, cols, rows));
-  draw_screen32(term->pixels, palette, term->pitch / sizeof(pixel32_t), 0, 0, screen);
-  if (surface != term) SDL_BlitScaled(term, NULL, surface, NULL);
+  draw_screen32(term->pixels, palette, term->pitch / sizeof(pixel32_t), 0, 0, 0, screen);
+  SDL_BlitScaled(term, NULL, surface, NULL);
   SDL_UpdateTexture(texture, NULL, surface->pixels, surface->pitch);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);

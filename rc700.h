@@ -45,6 +45,8 @@ void ctc_trigger(int channel);
 
 // rom.c
 
+extern BYTE dip_switches;
+
 void init_rom();
 void rom_floppy_boot_patch();
 
@@ -86,6 +88,7 @@ void init_fdc();
 void fdc_floppy_motor(BYTE data, int dev);
 int fdc_mount_disk(int drive, char *imagefile, int flags);
 void fdc_flush_disk(int drive);
+void fdc_swap_disks();
 
 // wdc.c
 
@@ -115,8 +118,11 @@ typedef unsigned short pixel16_t;
 #define XSCALE 3/2
 #define YSCALE 2
 
-#define SCREEN_WIDTH  (80 * 7 * XSCALE)
-#define SCREEN_HEIGHT (25 * 11 * YSCALE)
+#define RC_SCREEN_WIDTH  (80 * 7)
+#define RC_SCREEN_HEIGHT (25 * 11)
+
+#define SCREEN_WIDTH  (RC_SCREEN_WIDTH * XSCALE)
+#define SCREEN_HEIGHT (RC_SCREEN_HEIGHT * YSCALE)
 #define SCREEN_BPP    32
 
 extern int cursor_type;
@@ -124,7 +130,7 @@ extern int under_line;
 extern int cur_x;
 extern int cur_y;
 
-void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, int pitch, int xmargin, int ymargin, unsigned char *text);
+void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, int pitch, int xmargin, int ymargin, int stretch, unsigned char *text);
 void draw_screen16(pixel16_t *bitmap, pixel16_t *palette, int pitch, int xmargin, int ymargin, unsigned char *text);
 
 // rcterm-*.c

@@ -32,6 +32,7 @@ struct disk {
   BYTE *data;
   char *label;
   int num_tracks;
+  int num_sides;
   int dirty;
   int writeprotect;
   int readonly;
@@ -40,7 +41,7 @@ struct disk {
 };
 
 struct disk *load_disk_image(char *imagefile);
-struct disk *format_disk_image(int tracks, int sectors, int sectsize, int mfm);
+struct disk *format_disk_image(int tracks, int sides, int sectors, int sectsize, int mfm);
 int save_disk_image(struct disk *disk);
 void free_disk_image(struct disk *disk);
 

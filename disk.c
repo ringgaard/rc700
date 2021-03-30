@@ -40,6 +40,7 @@ struct disk *load_disk_image(char *imagefile) {
   if (!disk) return NULL;
   memset(disk, 0, sizeof(struct disk));
   strcpy(disk->filename, imagefile);
+  disk->num_sides = 1;
 
   // Read image into memory.
   f = fopen(imagefile, "rb");
@@ -126,6 +127,7 @@ struct disk *load_disk_image(char *imagefile) {
     track->num_sectors = hdr->sectors;
     track->sector_size = (1 << hdr->sector_size) * 128;
     if (hdr->cylinder >= disk->num_tracks) disk->num_tracks = hdr->cylinder + 1;
+    if (hdr->head == 1) disk->num_sides = 2;
 
 #ifdef DEBUG_DISK
     printf("track %d side %d: mfm %d xferrate %d sectors %d size %d\n",
@@ -215,7 +217,7 @@ int save_disk_image(struct disk *disk) {
 
   // Write tracks.
   for (c = 0; c < disk->num_tracks; ++c) {
-    for (h = 0; h < MAX_SIDES; ++h) {
+    for (h = 0; h < disk->num_sides; ++h) {
       // Write track header.
       track = &disk->tracks[c][h];
       hdr.cylinder = c;
@@ -332,7 +334,7 @@ void free_disk_image(struct disk *disk) {
   free(disk);
 }
 
-struct disk *format_disk_image(int tracks, int sectors, int sectsize, int mfm) {
+struct disk *format_disk_image(int tracks, int sides, int sectors, int sectsize, int mfm) {
   struct disk *disk;
   struct track *track;
   struct sector *sector;
@@ -344,11 +346,12 @@ struct disk *format_disk_image(int tracks, int sectors, int sectsize, int mfm) {
   if (!disk) return NULL;
   memset(disk, 0, sizeof(struct disk));
   disk->num_tracks = tracks;
+  disk->num_sides = sides;
   disk->label = "";
 
   // Format tracks.
   for (c = 0; c < disk->num_tracks; ++c) {
-    for (h = 0; h < MAX_SIDES; ++h) {
+    for (h = 0; h < disk->num_sides; ++h) {
       track = &disk->tracks[c][h];
       track->num_sectors = sectors;
       track->sector_size = sectsize;

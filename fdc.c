@@ -3,7 +3,7 @@
 //
 // Copyright (C) 2012 by Michael Ringgaard
 //
-// uPD765A - Floppy-Disk Controller 
+// uPD765A - Floppy-Disk Controller
 //
 
 #include <stdio.h>
@@ -154,6 +154,11 @@ void fdc_update_status(int drive, int head, int intr) {
       fdc.st1 &= ~FDC_ST1_NW;
       fdc.st3 &= ~FDC_ST3_WP;
     }
+    if (fdc.disk[drive]->num_sides == 1) {
+      fdc.st3 |= FDC_ST3_TS;
+    } else {
+      fdc.st3 &= ~FDC_ST3_TS;
+    }
   } else {
     fdc.st0 |= FDC_ST0_NR;
     fdc.st3 &= ~FDC_ST3_RY;
@@ -221,6 +226,9 @@ void fdc_read_sectors(int drive) {
   }
 
   L(printf("read: MT=%d MF=%d SK=%d C=%d H=%d R=%d N=%d EOT=%d GPL=%d DTL=%d\n", MT, MF, SK, C, H, R, N, EOT, GPL, DTL));
+
+  // Ignore head for single-sided disks.
+  if (disk->num_sides == 1) H = 0;
 
   // Compute sector size.
   if (N > 0) {
@@ -318,12 +326,12 @@ void fdc_write_sectors(int drive) {
 
       int size = track->sector_size;
       if (size > sector_size) size = sector_size;
-      
+
       // Fetch data from DMA channel.
       addr = dma_fetch(1, &size);
 
       L(printf("fdc: write sector C=%d,H=%d,S=%d: write %d bytes from %04X, %d kbps, %s\n", C, H, R - 1, size, (WORD) (addr - ram), track->transfer_rate, track->mfm ? "MFM" : "FM"));
-      
+
       if (size != track->sector_size) {
         W(printf("fdc: partial sector C=%d,H=%d,S=%d on drive %d, %d bytes, %d expected\n", C, H, R - 1, drive, size, track->sector_size));
       }
@@ -377,7 +385,7 @@ void fdc_format_track(int drive, int head) {
   }
 
   // Format track by filling all sectors on track with the filler byte.
-  L(printf("format: drive=%d head=%d cyl=%d N=%d (%d bytes/sector) SC=%d GPL=%d D=0x%02X\n", 
+  L(printf("format: drive=%d head=%d cyl=%d N=%d (%d bytes/sector) SC=%d GPL=%d D=0x%02X\n",
            drive, head, fdc.cylinder[drive], N, sector_size, SC, GPL, D));
   for (s = 0; s < SC; ++s) {
     fill_disk_sector(disk, fdc.cylinder[drive], head, s, D);
@@ -392,7 +400,7 @@ void fdc_execute_command() {
   cmd = fdc.command[0] & 0x1f;
   head = (fdc.command[1] >> 2) & 1;
   drive = fdc.command[1] & 0x03;
- 
+
   intr = 0;
   prev_st0 = fdc.st0;
   fdc.st0 &= ~FDC_ST0_MASK;
@@ -405,9 +413,9 @@ void fdc_execute_command() {
       break;
 
     case FDC_CMD_SPECIFY:
-      L(printf("fdc: specify: srt=%d ms, hut=%d ms, hlt=%d ms, non_dma=%d\n", 
-             16 - (fdc.command[1] >> 4), 
-             (fdc.command[1] & 0x0f) * 16, 
+      L(printf("fdc: specify: srt=%d ms, hut=%d ms, hlt=%d ms, non_dma=%d\n",
+             16 - (fdc.command[1] >> 4),
+             (fdc.command[1] & 0x0f) * 16,
              (fdc.command[2] >> 1) * 2,
              fdc.command[2] & 1));
       break;
@@ -501,7 +509,7 @@ void fdc_execute_command() {
 
 BYTE fdc_status(int dev) {
   LL(printf("fdc: read status %02X\n", fdc.status));
-  return fdc.status; 
+  return fdc.status;
 }
 
 BYTE fdc_data_in(int dev) {
@@ -576,6 +584,17 @@ int fdc_mount_disk(int drive, char *imagefile, int flags) {
   } else {
     W(printf("unable to load disk image in %s\n", imagefile));
     return -1;
+  }
+}
+
+void fdc_swap_disks() {
+  struct disk *tmp;
+
+  if (fdc.disk[0] != NULL && fdc.disk[1] != NULL) {
+    L(printf("fdc: swap disks\n"));
+    tmp = fdc.disk[0];
+    fdc.disk[0] = fdc.disk[1];
+    fdc.disk[1] = tmp;
   }
 }
 

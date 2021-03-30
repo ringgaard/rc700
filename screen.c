@@ -55,7 +55,7 @@ unsigned char blank[] = {
   0x00, 0x00, 0x00, 0x00,
 };
 
-void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, int pitch, int xmargin, int ymargin, unsigned char *text) {
+void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, int pitch, int xmargin, int ymargin, int stretch, unsigned char *text) {
   int row, col, line, blk, grp;
   int clreos, clreol, uline;
   unsigned char **c;
@@ -110,43 +110,63 @@ void draw_screen32(pixel32_t *bitmap, pixel32_t *palette, int pitch, int xmargin
         *c++ = charmem + (ch << 4);
       }
     }
-    
+
     // Each character has 11 lines.
     for (line = 11; line > 0; --line) {
-      begin = pix = bitmap;
+      pix = bitmap;
       c = cell;
-      
-      // Generate 20 * 4 = 80 characters per line.
-      a = attr;
-      for (blk = 20; blk > 0; --blk) {
-        // Fetch next 4 characters, each 7 pixels wide.
-        mask = 0;
-        for (grp = 4; grp > 0; --grp) {
+      if (stretch) {
+        // Generate 20 * 4 = 80 characters per line.
+        a = attr;
+        begin = pix;
+        for (blk = 20; blk > 0; --blk) {
+          // Fetch next 4 characters, each 7 pixels wide.
+          mask = 0;
+          for (grp = 4; grp > 0; --grp) {
+            pixels = *(*c++)++;
+            m = *a++;
+            if (m) {
+              if (m & ATTR_UNDERLINE && line == uline) pixels = 0x7F;
+              if (m & ATTR_REVERSE) pixels ^= 0x7F;
+            }
+            mask = (mask >> 7) | (pixels << 21);
+          }
+
+          // Generate two pixels at a time.
+          for (grp = 14; grp > 0; --grp) {
+            // Generate three screen pixels per character pixel pair.
+            int color = mask & 0x03;
+            pixel32_t *p = palette + (color << 2);
+            *pix++ = *p++;
+            *pix++ = *p++;
+            *pix++ = *p++;
+            mask >>= 2;
+          }
+        }
+        bitmap += pitch;
+
+        // Duplicate previous pixel line.
+        memcpy(bitmap, begin, 40 * 3 * 7 * sizeof(pixel32_t));
+        bitmap += pitch;
+      } else {
+        // Generate 80 characters * 7 pixels per line.
+        a = attr;
+        for (blk = 80; blk > 0; --blk) {
           pixels = *(*c++)++;
           m = *a++;
           if (m) {
             if (m & ATTR_UNDERLINE && line == uline) pixels = 0x7F;
             if (m & ATTR_REVERSE) pixels ^= 0x7F;
           }
-          mask = (mask >> 7) | (pixels << 21);
-        }
 
-        // Generate two pixels at a time.
-        for (grp = 14; grp > 0; --grp) {
-          // Generate three screen pixels per character pixel pair.
-          int color = mask & 0x03;
-          pixel32_t *p = palette + (color << 2);
-          *pix++ = *p++;
-          *pix++ = *p++;
-          *pix++ = *p++;
-          mask >>= 2;
+          for (grp = 7; grp > 0; --grp) {
+            int color = pixels & 0x01;
+            *pix++ = palette[color << 2];
+            pixels >>= 1;
+          }
         }
+        bitmap += pitch;
       }
-      bitmap += pitch;
-
-      // Duplicate previous pixel line.
-      memcpy(bitmap, begin, 40 * 3 * 7 * sizeof(pixel32_t));
-      bitmap += pitch;
     }
   }
 }
@@ -206,12 +226,12 @@ void draw_screen16(pixel16_t *bitmap, pixel16_t *palette, int pitch, int xmargin
         *c++ = charmem + (ch << 4);
       }
     }
-    
+
     // Each character has 11 lines.
     for (line = 11; line > 0; --line) {
       begin = pix = bitmap;
       c = cell;
-      
+
       // Generate 20 * 4 = 80 characters per line.
       a = attr;
       for (blk = 20; blk > 0; --blk) {
