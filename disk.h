@@ -13,6 +13,7 @@
 struct sector {
   BYTE *data;
   BYTE fill;
+  int physical;
   int present;
   int deleted;
   int bad;

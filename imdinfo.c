@@ -31,13 +31,13 @@ int main(int argc, char *argv[]) {
       if (h > 0) ds = 1;
       if (track->mfm) dd = 1;
       if (c >= 40) hd = 1;
-      //printf("track %d side %d: %d sectors of %d bytes\n", c, h, track->num_sectors, track->sector_size);
+      printf("track %d side %d: %d sectors of %d bytes\n", c, h, track->num_sectors, track->sector_size);
 
       if (track->num_sectors != cur_num_sectors || track->sector_size != cur_sector_size) {
         if (num_tracks > 0) {
           printf("%d tracks: %d sectors of %d bytes\n", num_tracks, cur_num_sectors, cur_sector_size);
         }
-        cur_num_sectors = track->num_sectors; 
+        cur_num_sectors = track->num_sectors;
         cur_sector_size = track->sector_size;
         num_tracks = 0;
       }
@@ -53,8 +53,11 @@ int main(int argc, char *argv[]) {
         } else {
           unused += track->sector_size;
         }
-        if (sector->bad) bad++;
-        //printf("  %d/%d/%d %d bytes data=%p fill=%02x\n", c, h, s + 1, track->sector_size, sector->data, sector->fill);
+        if (sector->bad) {
+          printf("  bad sector %d/%d/%d %d bytes\n", c, h, s + 1, track->sector_size);
+          bad++;
+        }
+        printf("  %d/%d/%d %d bytes data=%p fill=%02x phys=%d\n", c, h, s + 1, track->sector_size, sector->data, sector->fill, sector->physical);
       }
     }
   }

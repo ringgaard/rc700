@@ -850,11 +850,29 @@ static int load_intel(int fd, char *fn) {
   return 0;
 }
 
+// Loader for binary images.
+static int load_binary(int fd, char *fn) {
+  unsigned count, n;
+  int rc = 0;
+
+  if (wrk_ram == NULL) {
+    // Load into TPA if no address is given.
+    wrk_ram = ram + 0x100;
+  }
+  count = ram + 65535 - wrk_ram;
+  n = read(fd, (char *) wrk_ram, count);
+  printf("START : %04x\n", (unsigned int)(wrk_ram - ram));
+  printf("END   : %04x\n", (unsigned int)(wrk_ram - ram + n - 1));
+  printf("LOADED: %04x (%d pages)\n", n, (n + 256) / 256);
+  return rc;
+}
+
 // Read a file into the memory of the emulated CPU.
 // The following file formats are supported:
 //
 // - binary images with Mostek header
 // - Intel hex format
+// - binary files
 static int do_getfile(char *s) {
   char fn[CMDLEN];
   BYTE fileb[5];
@@ -892,8 +910,8 @@ static int do_getfile(char *s) {
     // Intel hex header.
     rc = load_intel(fd, fn);
   } else {
-    printf("unknown format, can't load file %s\n", fn);
-    rc = 1;
+    // Binary file.
+    rc = load_binary(fd, fn);
   }
   close(fd);
   return rc;

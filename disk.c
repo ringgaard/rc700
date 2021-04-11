@@ -135,8 +135,11 @@ struct disk *load_disk_image(char *imagefile) {
            track->mfm, track->transfer_rate, track->num_sectors, track->sector_size);
 #endif
 
-    // Skip physical-to-logical sector map.
-    p += track->num_sectors;
+    // Physical-to-logical sector map.
+    for (i = 0; i < track->num_sectors; ++i) {
+      sector = &track->sectors[i];
+      sector->physical = *p++;
+    }
 
     // Setup sectors for track.
     for (i = 0; i < track->num_sectors; ++i) {
@@ -235,7 +238,10 @@ int save_disk_image(struct disk *disk) {
       fwrite(&hdr, 1, sizeof(hdr), f);
 
       // Write sector map.
-      for (s = 0; s < track->num_sectors; ++s) putc(s, f);
+      for (s = 0; s < track->num_sectors; ++s) {
+        sector = &track->sectors[s];
+        putc(sector->physical, f);
+      }
 
       // Write sectors.
       for (s = 0; s < track->num_sectors; ++s) {
@@ -360,6 +366,7 @@ struct disk *format_disk_image(int tracks, int sides, int sectors, int sectsize,
       for (s = 0; s < track->num_sectors; ++s) {
         sector = &track->sectors[s];
         sector->fill = filler;
+        sector->physical = s;
       }
     }
   }

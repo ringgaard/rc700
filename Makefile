@@ -64,6 +64,9 @@ blankimd: blankimd.c disk.c disk.h
 raw2imd: raw2imd.c disk.c disk.h
 	$(CC) -o $@ raw2imd.c disk.c
 
+imdsectofs: imdsectofs.c disk.c disk.h
+	$(CC) -o $@ imdsectofs.c disk.c
+
 rxtext: rtext.c
 	$(CC) -o $@ rctext.c
 

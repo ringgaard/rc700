@@ -205,7 +205,7 @@ BYTE sio_data_in(int dev) {
   }
 
   sio_check_receive(dev);
-  return data; 
+  return data;
 }
 
 void sio_data_out(BYTE data, int dev) {
@@ -246,25 +246,25 @@ void sio_ctrl_out(BYTE data, int dev) {
     LL(printf("sio%d: command %d\n", dev, cmd));
     switch (cmd) {
       // Null
-      case 0: 
+      case 0:
         break;
 
-      // Send abort 
+      // Send abort
       case 1:
         W(printf("sio%d: send abort, not implemented\n", dev));
         break;
 
       // Reset Ext/Status Interrupts
-      case 2: 
+      case 2:
         L(printf("sio%d: reset status\n", dev));
         if (dev == 0) sio[dev].rr[0] &= ~SIO_R0_INT;
         sio[dev].rr[0] |= SIO_R0_TX_PEND;
         break;
 
       // Channel reset
-      case 3: 
+      case 3:
         L(printf("sio%d: reset\n", dev));
-        sio_reset(dev); 
+        sio_reset(dev);
         break;
 
       // Enable INT on Next Ax Character
@@ -278,7 +278,7 @@ void sio_ctrl_out(BYTE data, int dev) {
         sio[0].rr[0] &= ~SIO_R0_INT;
         sio[dev].rr[0] &= ~SIO_R0_TX_PEND;
         break;
- 
+
       // Error Reset
       case 6:
         W(printf("sio%d: error reset, not implemented\n", dev));
@@ -287,7 +287,7 @@ void sio_ctrl_out(BYTE data, int dev) {
       // Return from INT (CH-A Only)
       case 7:
         W(printf("sio%d: return from int, not implemented\n", dev));
-        break; 
+        break;
     }
   } else {
     L(sio_dump_write_register(dev, ptr, data));
